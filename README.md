@@ -5,7 +5,7 @@ Plan: Use RL technique self-play with 2 neural networks: target network and poli
 
 Offload path scheduling and organization to the pathplanner script. To allow the network to focus more on strategy and wider actions (move from here to there and not worry about how to get there)
 
-##Potential Strategies:
+## Potential Strategies:
 
 Policy towards opponents
 1. Ignore the opponents movements and focus on building your own base
