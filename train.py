@@ -1,5 +1,5 @@
 from sys import path
-path.append("C:\\Users\\lenovo\\Desktop\\Coding\\CustomModules")
+path.append("C:\\Users\\kenng\\Desktop\\Coding\\CustomModules")
 
 import argparse
 import glob
@@ -326,7 +326,7 @@ def train_loop(
         ply_model = PPO.load(ply_path + 'model.zip')
     else:
         ply_info = None
-        if ply_policy:
+        if not ply_policy:
             ply_policy = 'agent_policy'
         ply_policy_obj = import_module('models.' + ply_policy).AgentPolicy
         ply_model = None
@@ -520,7 +520,7 @@ def eval_model(
 
     return results
 
-def train_stage(params:dict, stage_path, replay=False, new_model=False):
+def train_stage(params:dict, stage_path, replay=False):
     '''
     Run a training stage
     '''
@@ -675,8 +675,8 @@ def main(args):
     Main function to execute.
     '''
     # Variables
-    stage_size = 6  # number of models in 1 stage
-    select = 4  # select the top 'select' models to pass into the next stage
+    stage_size = 30  # number of models in 1 stage
+    select = 6  # select the top 'select' models to pass into the next stage
     spawn_new = 5  # each selected model should spawn 'spawn_new' new models
     ini_steps = 1000000  # number of steps to train in the first stage (stage 0)
     stage_steps = 100000  # number of steps to train between each stage
@@ -721,10 +721,81 @@ def main(args):
     ini_train_params = [
         {
             'model_policy':'agent1',
-            'n_copies':20,
+            'n_copies':3,
             'step_count': 1000000,
+            'learning_rate':0.005,
+        },
+        {
+            'model_policy':'agent1',
+            'n_copies':3,
+            'step_count': 1000000,
+            'learning_rate':0.001,
+            'gamma':0.999,
+        },
+        {
+            'model_policy':'agent1',
+            'n_copies':3,
+            'step_count': 1000000,
+            'learning_rate':0.001,
+            'gamma':0.995,
+            'gae_lambda':0.99,
+        },
+        {
+            'model_policy':'agent1',
+            'n_copies':3,
+            'step_count': 1000000,
+            'learning_rate':0.001,
+            'gamma':0.995,
+            'gae_lambda':0.90,
+        },
+        {
+            'model_policy':'agent2',
+            'n_copies':3,
+            'step_count': 1000000,
+            'learning_rate':0.001,
+        },
+        {
+            'model_policy':'agent2',
+            'n_copies':3,
+            'step_count': 1000000,
+            'learning_rate':0.005,
+        },
+        {
+            'model_policy':'agent2',
+            'n_copies':3,
+            'step_count': 1000000,
+            'learning_rate':0.001,
+            'gamma': 0.999,
+        },
+        {
+            'model_policy':'agent2',
+            'n_copies':3,
+            'step_count': 1000000,
+            'learning_rate':0.005,
+            'gamma': 0.995,
+            'gae_lambda': 0.99
+        },
+        {
+            'model_policy':'agent2',
+            'n_copies':3,
+            'step_count': 1000000,
+            'learning_rate':0.005,
+            'gamma': 0.995,
+            'gae_lambda': 0.90
         }
     ]
+
+    stage_path = stage_paths[0]
+    models = train_stage(ini_train_params, stage_path)
+    best_models = eval_stage(stage_path, select)
+    print(f"Best models in stage_0: {best_models}")
+
+    with open(stage_path + 'best_models.txt', 'w') as f:
+            f.write(str(best_models))
+    
+    return None
+
+    '''
     train_params_template = [
         {
             'model_policy':'agent1',
@@ -821,6 +892,7 @@ def main(args):
         bm_score = eval(f.read())['score']
     print(f"Best model: {best_model}, Score: {bm_score}")
     return best_model
+    '''
 
 
 if __name__ == "__main__":
