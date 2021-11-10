@@ -567,6 +567,8 @@ def train_stage(params:dict, stage_path, replay=False):
         id = [train_loop(**train_loop_args) for _ in range(n)]
         model_ids += id
 
+    print(f"Training stage complete. Models {model_ids} saved in {stage_path}")
+
     return model_ids
 
     models = params['models']
@@ -616,7 +618,7 @@ def eval_stage(stage_path, select, model_ids=None, n_games=3, max_steps=1000):
     for id in model_ids:
         model_scores[id] = ModelScore(id)
     # Allow every ModelScore to access all other ModelScores
-    for model_score in model_scores:
+    for model_score in model_scores.values():
         model_score.add_pool(model_scores)
 
     # If selecting a small portion of n_models and there are at least 8 models, 
@@ -784,14 +786,21 @@ def main(args):
             'gae_lambda': 0.90
         }
     ]
+    ini_train_params = [
+        {
+            'model_policy':'agent3',
+            'n_copies':3,
+            'step_count':1000000
+        }
+    ]
 
     stage_path = stage_paths[0]
     models = train_stage(ini_train_params, stage_path)
-    best_models = eval_stage(stage_path, select)
-    print(f"Best models in stage_0: {best_models}")
+    # best_models = eval_stage(stage_path, select)
+    # print(f"Best models in stage_0: {best_models}")
 
-    with open(stage_path + 'best_models.txt', 'w') as f:
-            f.write(str(best_models))
+    # with open(stage_path + 'best_models.txt', 'w') as f:
+            # f.write(str(best_models))
     
     return None
 

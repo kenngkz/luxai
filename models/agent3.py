@@ -8,7 +8,7 @@ Rewards:
     - comparative citytile alive at game end = 1
 '''
 
-from agent_policy import AgentPolicy as BaseAgentPolicy
+from models.agent_policy import AgentPolicy as BaseAgentPolicy
 
 class AgentPolicy(BaseAgentPolicy):
 
@@ -43,9 +43,11 @@ class AgentPolicy(BaseAgentPolicy):
             return 0
 
         # Get stats
-        teams = [agent.team for agent in game.agents]
-        teams.pop(self.team)
-        opp_team = teams[0]
+        for team, stats in game.state["teamStates"].items():
+            if team != self.team:
+                opp_team = team
+                break
+
         unit_count = len(game.state["teamStates"][self.team]["units"])
         unit_count_opp = len(game.state["teamStates"][opp_team]["units"])
 
