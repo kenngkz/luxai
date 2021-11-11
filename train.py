@@ -457,7 +457,7 @@ def eval_model(
     
     results = {}
     n_opps = len(opp_paths)
-    for i, opp_path in enumerate(opp_paths):
+    for opp_index, opp_path in enumerate(opp_paths):
         # auto-adjust opp_path to end with '/'
         if opp_path[-1] != '/' or opp_path[-1] != '\\':
             opp_path += '/'
@@ -479,10 +479,10 @@ def eval_model(
         new_matches = []
 
         # Run games and save replay
-        for i in range(n_games):
+        for n in range(n_games):
             configs['seed'] = seed
             if save:
-                replay_name = replay_prefix + f'_{opp_id}_{i}'
+                replay_name = replay_prefix + f'_{opp_id}_{n}'
                 env = LuxEnvironment(configs, player, opponent, replay_folder=model_path+replay_dir, replay_prefix=replay_name)
             else:
                 env = LuxEnvironment(configs, player, opponent)
@@ -496,7 +496,7 @@ def eval_model(
                     break
     
         n_wins = sum(new_matches)
-        print(f"All matches against opponent {opp_id} completed. Win - Loss : {n_wins} - {n_games - n_wins}. Progress: {i} / {n_opps}")
+        print(f"All matches against opponent {opp_id} completed. Win - Loss : {n_wins} - {n_games - n_wins}. Progress: {opp_index} / {n_opps}")
         
         # add matches to evaluation match history
         summary['n_games'] += n_games
@@ -571,14 +571,27 @@ def eval_stage(stage_path, n_select, model_ids=None, n_games=3, max_steps=1000, 
     '''
     Evaluates all models in a given stage folder, then selects the models with the top n_select scores.
     '''
+
+    def update_eval_file(path, eval_completed_status, score=None):
+        with open(path, 'r') as f:
+            eval_info = eval(f.read())
+        if score:
+            eval_info['score'] = score
+        eval_info['eval_completed'] = eval_completed_status
+        with open(path, 'w') as f:
+            f.write(str(eval_info))
+
     if not model_ids:
         model_ids = get_existing_models(stage_path + 'modellist.txt')
     n_models = len(model_ids)
 
     # Initiliaze a ModelScore for every model to be evaluated
+        # the skip dict indicates if a model eval should be skipped
     model_scores = {}
+    skip = {}
     for id in model_ids:
         model_scores[id] = ModelScore(id)
+        skip[id] = False
     # Allow every ModelScore to access all other ModelScores
     for model_score in model_scores.values():
         model_score.add_pool(model_scores)
@@ -586,28 +599,48 @@ def eval_stage(stage_path, n_select, model_ids=None, n_games=3, max_steps=1000, 
     # If selecting a small portion of n_models and there are at least 8 models, 
         # eliminate half of the pool to reduce computation time
     if n_select/n_models < 0.45 and n_models > 7:
-        for id in model_ids:
+        for model_index, id in enumerate(model_ids):
             if resume:  # check if model has been evaluated before (score value recorded in eval.json)
                 try:
                     with open(stage_path + id + '/eval.json', 'r') as f:
                         eval_info = eval(f.read())
-                        if 'score' in eval_info:
+                    if 'eval_completed' in eval_info:
+                        if eval_info['eval_completed']:
+                            skip[id] = True
                             continue
+                    if 'score' in eval_info:  # if the model already has a score, skip only the preliminary evaluation
+                        print(f"Preliminary evaluation for model {id} skipped. Preliminary evaluation already completed.")
+                        played_opps = list(eval_info['history'].keys())
+                        model_score.skip_opps(played_opps)
+                        continue
                 except FileNotFoundError:
                     pass
+            print(f"Preliminary Evaluation for model {id}. pending_models / total_models: {n_models - model_index - 1} / {n_models}")
             opp_paths = random.sample([stage_path+opp_id for opp_id in model_score.remaining_opp], int(n_models/2))
             results = eval_model(stage_path+id, opp_paths, n_games=n_games, max_steps=max_steps)
             model_score.update(results)
+            update_eval_file(stage_path+id+'/eval.json', False, model_score.score)
             
         _, i, sorted_scores = select_k([model_score for model_score in model_scores.values()], int(n_models/2))
         final_model_ids  = sorted_scores[:i+1]
+        dropped_models = sorted_scores[i+1:]
     else:
         final_model_ids = model_ids
+        dropped_models = []
+
+    # Set all dropped_models eval_completed status to True
+    for id in dropped_models:
+        update_eval_file(stage_path+id+'/eval.json', True)
 
     # Select the final n best models 
-    for id in final_model_ids:
+    for model_index, id in enumerate(final_model_ids):
+        if resume and skip[id]:
+            print(f"Model {id} skipped: Evaluation already complete")
+            continue
+        print(f"Final Evaluation for model {id}. pending_models / total_models: {n_models - model_index - 1} / {n_models}")
         results = eval_model(stage_path+id, [stage_path+opp_id for opp_id in model_score.remaining_opp], n_games=n_games, max_steps=max_steps)
         model_scores[id].update(results)
+        update_eval_file(stage_path+id+'/eval.json', True, model_score.score)
 
     _, i, selected_scores = select_k([model_score for model_score in model_scores.values()], n_select)
 
