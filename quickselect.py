@@ -1,4 +1,3 @@
-from os import getlogin
 from typing import List
 
 def ge(a, b):
@@ -17,7 +16,7 @@ def select_k(nums: List[int], k: int, ge=ge, le=le, reverse=False) -> int:
     '''
 
     if reverse:
-        ge, le = le, getlogin
+        ge, le = le, ge, le
        
     left, right = 0, len(nums)-1
     

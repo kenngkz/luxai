@@ -10,7 +10,7 @@ from train_loop import train_loop
 from eval_model import eval_model
 from utility import get_existing_models
 from model_score import ModelScore
-from data_structures import select_k
+from data_structures.quickselect import select_k
 
 import random
 
@@ -99,6 +99,7 @@ def eval_stage(stage_path, n_select, model_ids=None, n_games=3, max_steps=1000, 
         # eliminate half of the pool to reduce computation time
     if n_select/n_models < 0.45 and n_models > 7:
         for model_index, id in enumerate(model_ids):
+            model_score = model_scores[id]
             if resume:  # check if model has been evaluated before (score value recorded in eval.json)
                 try:
                     with open(stage_path + id + '/eval.json', 'r') as f:
