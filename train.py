@@ -1,5 +1,6 @@
+# Allow custom modules to be imported
 from sys import path
-path.append("C:\\Users\\kenng\\Desktop\\Coding\\CustomModules")
+path.append("C:\\Users\\lenovo\\Desktop\\Coding\\CustomModules")
 
 import argparse
 import glob
@@ -37,14 +38,6 @@ class ModelScore:
         # calculate the average winrate
         winrates = [summary['winrate'] for summary in self.results.values()]
         return sum(winrates)/len(winrates)
-
-        # calculates the average winrates weighted by number of games played
-        total_games = 0
-        weighted_sum = []
-        for summary in self.results.values():
-            total_games += summary['n_games']
-            weighted_sum.append((summary['n_games'], summary['winrate']))
-        return sum([n_games*winrate for n_games, winrate in weighted_sum])/total_games
 
     def add_pool(self, opp_pool):
         self.opp_pool = opp_pool
@@ -136,12 +129,13 @@ def get_command_line_arguments():
 
 def get_existing_models(modellist_path=None):
     if not modellist_path:
-        modellist_path = "C:/Users/lenovo/Desktop/Coding/LuxAI/rl/modelcp/models.txt"
+        modellist_path = "C:/Users/lenovo/Desktop/Coding/LuxAI/rl/modelcp/modellist.txt"
     try:
         with open(modellist_path, 'r') as f:
             modellist =  f.read().split('\n')
         modellist.remove('')
     except FileNotFoundError:
+        print(f"File not found. Path: {modellist_path}")
         with open(modellist_path, 'w') as f:
             f.write('')
         modellist = []
@@ -462,7 +456,8 @@ def eval_model(
     print(f"Evaluation for model {ply_info['run_id']} against {len(opp_paths)} opponents...")
     
     results = {}
-    for opp_path in opp_paths:
+    n_opps = len(opp_paths)
+    for i, opp_path in enumerate(opp_paths):
         # auto-adjust opp_path to end with '/'
         if opp_path[-1] != '/' or opp_path[-1] != '\\':
             opp_path += '/'
@@ -496,13 +491,12 @@ def eval_model(
                 action_code, _states = model.predict(obs, deterministic=True)
                 obs, rewards, done, info = env.step(action_code)
                 if done:
-                    print("Episode done, resetting.")
                     new_matches.append(int(env.game.get_winning_team() == player.team))
                     obs = env.reset()
                     break
     
         n_wins = sum(new_matches)
-        print(f"All matches against opponent {opp_id} completed. Win - Loss : {n_wins} - {n_games - n_wins}")
+        print(f"All matches against opponent {opp_id} completed. Win - Loss : {n_wins} - {n_games - n_wins}. Progress: {i} / {n_opps}")
         
         # add matches to evaluation match history
         summary['n_games'] += n_games
@@ -516,7 +510,9 @@ def eval_model(
         f.write(str({'history':eval_history}))
 
     print(f"Evaluation for model {ply_info['run_id']} complete.")
-    print(f"Results: {results}")
+    total_games = n_games * n_opps
+    total_wins = sum([summ['n_wins'] for summ in results.values()])
+    print(f"Results -> Total Wins - Total Losses : {total_wins} - {total_games-total_wins}")
 
     return results
 
@@ -571,44 +567,10 @@ def train_stage(params:dict, stage_path, replay=False):
 
     return model_ids
 
-    models = params['models']
-    model_ids = []
-    n_models = 0
-    # run training using the given params
-    for model, n in models.items():
-        n_models += n
-        train_loop_args = {
-                    'step_count': params['steps'],
-                    'learning_rate': params['learning_rate'],
-                    'gamma': params['gamma'],
-                    'gae_lambda': params['gae_lambda'],
-                    'save_folder':stage_path,
-                    'modellist_file':stage_path + 'modellist.txt',
-                    'tensorboard_log':stage_path + 'tensorboard_log/'
-                }
-        # determine if a new model is to be generated
-        if not new_model:
-            train_loop_args['ply_path'] = model
-        else:
-            train_loop_args['ply_policy'] = model
-        # check for opp_path in params
-        if 'opp_path' in params:
-            train_loop_args['opp_path'] = params['opp_path']
-        # check if training replays should be saved
-        if replay:
-            train_loop_args['replay_freq'] = params['steps']
-        else:
-            if 'replay_freq' in params:
-                train_loop_args['replay_freq'] = params['replay_freq']
-        if 'run_id' in params:
-            train_loop_args['run_id'] = params['run_id']
-        id = [train_loop(**train_loop_args) for _ in range(n)]
-        model_ids += id
-
-    return model_ids
-
-def eval_stage(stage_path, select, model_ids=None, n_games=3, max_steps=1000):
-
+def eval_stage(stage_path, n_select, model_ids=None, n_games=3, max_steps=1000, resume=False):
+    '''
+    Evaluates all models in a given stage folder, then selects the models with the top n_select scores.
+    '''
     if not model_ids:
         model_ids = get_existing_models(stage_path + 'modellist.txt')
     n_models = len(model_ids)
@@ -623,10 +585,20 @@ def eval_stage(stage_path, select, model_ids=None, n_games=3, max_steps=1000):
 
     # If selecting a small portion of n_models and there are at least 8 models, 
         # eliminate half of the pool to reduce computation time
-    if n_models/select < 0.45 and n_models > 7:
+    if n_select/n_models < 0.45 and n_models > 7:
         for id in model_ids:
-            results = eval_model(stage_path+id, [stage_path+opp_id for opp_id in model_score.remaining_opp], n_games=n_games, max_steps=max_steps)
+            if resume:  # check if model has been evaluated before (score value recorded in eval.json)
+                try:
+                    with open(stage_path + id + '/eval.json', 'r') as f:
+                        eval_info = eval(f.read())
+                        if 'score' in eval_info:
+                            continue
+                except FileNotFoundError:
+                    pass
+            opp_paths = random.sample([stage_path+opp_id for opp_id in model_score.remaining_opp], int(n_models/2))
+            results = eval_model(stage_path+id, opp_paths, n_games=n_games, max_steps=max_steps)
             model_score.update(results)
+            
         _, i, sorted_scores = select_k([model_score for model_score in model_scores.values()], int(n_models/2))
         final_model_ids  = sorted_scores[:i+1]
     else:
@@ -637,7 +609,7 @@ def eval_stage(stage_path, select, model_ids=None, n_games=3, max_steps=1000):
         results = eval_model(stage_path+id, [stage_path+opp_id for opp_id in model_score.remaining_opp], n_games=n_games, max_steps=max_steps)
         model_scores[id].update(results)
 
-    _, i, selected_scores = select_k([model_score for model_score in model_scores.values()], select)
+    _, i, selected_scores = select_k([model_score for model_score in model_scores.values()], n_select)
 
     # Update all eval.json files for every model to include their score
     for id, model_score in model_scores.items():
@@ -678,7 +650,7 @@ def main(args):
     '''
     # Variables
     stage_size = 30  # number of models in 1 stage
-    select = 6  # select the top 'select' models to pass into the next stage
+    select = 12  # select the top 'select' models to pass into the next stage
     spawn_new = 5  # each selected model should spawn 'spawn_new' new models
     ini_steps = 1000000  # number of steps to train in the first stage (stage 0)
     stage_steps = 100000  # number of steps to train between each stage
@@ -722,58 +694,37 @@ def main(args):
     # Define parameters
     ini_train_params = [
         {
-            'model_policy':'agent1',
+            'model_policy':'agent2',
             'n_copies':3,
             'step_count': 1000000,
-            'learning_rate':0.005,
+            'learning_rate':0.003,
         },
         {
-            'model_policy':'agent1',
+            'model_policy':'agent2',
             'n_copies':3,
             'step_count': 1000000,
-            'learning_rate':0.001,
-            'gamma':0.999,
+            'learning_rate':0.0005,
         },
         {
-            'model_policy':'agent1',
+            'model_policy':'agent2',
             'n_copies':3,
             'step_count': 1000000,
-            'learning_rate':0.001,
-            'gamma':0.995,
-            'gae_lambda':0.99,
-        },
-        {
-            'model_policy':'agent1',
-            'n_copies':3,
-            'step_count': 1000000,
-            'learning_rate':0.001,
-            'gamma':0.995,
-            'gae_lambda':0.90,
+            'learning_rate':0.0001,
+            'gamma': 0.995,
         },
         {
             'model_policy':'agent2',
             'n_copies':3,
             'step_count': 1000000,
             'learning_rate':0.001,
-        },
-        {
-            'model_policy':'agent2',
-            'n_copies':3,
-            'step_count': 1000000,
-            'learning_rate':0.005,
+            'gamma': 0.990,
+            'gae_lambda': 0.95
         },
         {
             'model_policy':'agent2',
             'n_copies':3,
             'step_count': 1000000,
             'learning_rate':0.001,
-            'gamma': 0.999,
-        },
-        {
-            'model_policy':'agent2',
-            'n_copies':3,
-            'step_count': 1000000,
-            'learning_rate':0.005,
             'gamma': 0.995,
             'gae_lambda': 0.99
         },
@@ -781,26 +732,28 @@ def main(args):
             'model_policy':'agent2',
             'n_copies':3,
             'step_count': 1000000,
-            'learning_rate':0.005,
+            'learning_rate':0.001,
             'gamma': 0.995,
             'gae_lambda': 0.90
         }
     ]
-    ini_train_params = [
-        {
-            'model_policy':'agent3',
-            'n_copies':3,
-            'step_count':1000000
-        }
-    ]
 
     stage_path = stage_paths[0]
-    models = train_stage(ini_train_params, stage_path)
-    # best_models = eval_stage(stage_path, select)
-    # print(f"Best models in stage_0: {best_models}")
 
-    # with open(stage_path + 'best_models.txt', 'w') as f:
-            # f.write(str(best_models))
+    if not os.path.exists(stage_path):
+        os.mkdir(stage_path)
+    # models = train_stage(ini_train_params, stage_path)
+    best_models = eval_stage(stage_path, select, resume=True)
+    scores = {}
+    for model_id in best_models:
+        with open(stage_path + model_id + '/eval.json', 'r') as f:
+            scores[model_id] = eval(f.read())['score']
+    print(f"Best models in stage_0:")
+    for id, score in scores.items():
+        print(f"  {id} : {score}")
+
+    with open(stage_path + 'best_models.txt', 'w') as f:
+            f.write(str(best_models))
     
     return None
 
