@@ -92,19 +92,19 @@ def eval_model(
         print(f"All matches against opponent {opp_id} completed. Win - Loss : {n_wins} - {n_games - n_wins}. Progress: {opp_index+1} / {n_opps}")
         
         # add matches to evaluation match history
-        summary['n_games'] += n_games
-        summary['n_wins'] += n_wins
-        summary['winrate'] = summary['n_wins']/summary['n_games']
+        summary["n_games"] += n_games
+        summary["n_wins"] += n_wins
+        summary["winrate"] = summary["n_wins"]/summary["n_games"]
 
         eval_history[opp_id] = summary
         results[opp_id] = summary
 
     with open(model_path+'eval.json', 'w') as f:
-        f.write(str({'history':eval_history}))
+        f.write(str({"history":eval_history}))
 
     print(f"Evaluation for model {ply_info['run_id']} complete.")
     total_games = n_games * n_opps
-    total_wins = sum([summ['n_wins'] for summ in results.values()])
+    total_wins = sum([summ["n_wins"] for summ in results.values()])
     print(f"Results -> Total Wins - Total Losses : {total_wins} - {total_games-total_wins}")
 
     return results

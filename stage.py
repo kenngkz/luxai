@@ -13,7 +13,7 @@ from model_score import ModelScore
 from data_structures.quickselect import select_k
 
 import random
-
+from math import exp
 
 def train_stage(params:dict, stage_path, replay=False):
     '''
@@ -72,17 +72,24 @@ def eval_stage(stage_path, n_select, model_ids=None, n_games=3, max_steps=1000, 
     '''
 
     def update_eval_file(path, eval_completed_status, score=None):
+        '''
+        Edits eval.json to update the given score and eval_completed_status.
+        '''
         with open(path, 'r') as f:
             eval_info = eval(f.read())
         if score:
-            eval_info['score'] = score
-        eval_info['eval_completed'] = eval_completed_status
+            eval_info["score"] = score
+        eval_info["eval_completed"] = eval_completed_status
         with open(path, 'w') as f:
             f.write(str(eval_info))
 
     if not model_ids:
         model_ids = get_existing_models(stage_path + 'modellist.txt')
     n_models = len(model_ids)
+    # function to determine how many opps in the preliminary stage
+    m = - 1 / 3 / 100
+    c = 0.5 - 10 * m
+    n_samples = n_models * max(0.26, n_models * m + c)
 
     # Initiliaze a ModelScore for every model to be evaluated
         # the skip dict indicates if a model eval should be skipped
@@ -105,7 +112,7 @@ def eval_stage(stage_path, n_select, model_ids=None, n_games=3, max_steps=1000, 
                     with open(stage_path + id + '/eval.json', 'r') as f:
                         eval_info = eval(f.read())
                     if 'eval_completed' in eval_info:
-                        if eval_info['eval_completed']:
+                        if eval_info["eval_completed"]:
                             skip[id] = True
                             continue
                     if 'score' in eval_info:  # if the model already has a score, skip only the preliminary evaluation
@@ -116,10 +123,11 @@ def eval_stage(stage_path, n_select, model_ids=None, n_games=3, max_steps=1000, 
                 except FileNotFoundError:
                     pass
             print(f"Preliminary Evaluation for model {id}. Pending: {n_models - model_index - 1} / {n_models}")
-            opp_paths = random.sample([stage_path+opp_id for opp_id in model_score.remaining_opp], int(n_models/2))
+            opp_paths = random.sample([stage_path+opp_id for opp_id in model_score.remaining_opp], int(n_samples))
             results = eval_model(stage_path+id, opp_paths, n_games=n_games, max_steps=max_steps)
             model_score.update(results)
             update_eval_file(stage_path+id+'/eval.json', False, model_score.score)
+            print(f"Score for model {id}: {model_score.score}")
             
         _, i, sorted_scores = select_k([model_score for model_score in model_scores.values()], int(n_models/2))
         final_model_ids  = sorted_scores[:i+1]
@@ -148,7 +156,7 @@ def eval_stage(stage_path, n_select, model_ids=None, n_games=3, max_steps=1000, 
     for id, model_score in model_scores.items():
         with open(stage_path + id + '/eval.json', 'r') as f:
             eval_info = eval(f.read())
-        eval_info['score'] = model_score.score
+        eval_info["score"] = model_score.score
         with open(stage_path + id + '/eval.json', 'w') as f:
             f.write(str(eval_info))
 

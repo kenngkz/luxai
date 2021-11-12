@@ -15,7 +15,7 @@ class ModelScore:
     
     def cal_winrate(self):
         # calculate the average winrate
-        winrates = [summary['winrate'] for summary in self.results.values()]
+        winrates = [summary["winrate"] for summary in self.results.values()]
         return sum(winrates)/len(winrates)
 
     def add_pool(self, opp_pool):
@@ -33,12 +33,12 @@ class ModelScore:
         if self.score == None:
             self.score = 0
         for opp_id, summary in results.items():
-            winrate = 2 * summary['winrate'] - 1  # convert winrate to be between -1.0 and 1.0
+            winrate = 2 * summary["winrate"] - 1  # convert winrate to be between -1.0 and 1.0
             if self.opp_pool[opp_id].score == None:
                 opp_winrate = self.opp_pool[opp_id].cal_winrate()  # calculate the average winrate of the opponent.
-                opp_score = -50 + 100 * opp_winrate  
+                opp_score = -10 + 10 * opp_winrate  
                     # if 50% winrate, score will be 100 (default score)
-                    # range of estimated opp_score: -50 - 50
+                    # range of estimated opp_score: -20 - 20
             else:
                 opp_score = self.opp_pool[opp_id].score
             # Score Calculation Formula
