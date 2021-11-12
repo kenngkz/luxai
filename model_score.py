@@ -1,5 +1,5 @@
 from numpy import sign
-from math import exp
+from math import exp, tanh
 
 
 class ModelScore:
@@ -31,21 +31,23 @@ class ModelScore:
         '''
         assert self.opp_pool != None, "opp_pool must be specified for cal_score() to run. Add opp_pool using ModelScore.add_pool(opp_pool)"
         if self.score == None:
-            self.score = 100
+            self.score = 0
         for opp_id, summary in results.items():
-            winrate = summary['winrate']
+            winrate = 2 * summary['winrate'] - 1  # convert winrate to be between -1.0 and 1.0
             if self.opp_pool[opp_id].score == None:
-                opp_winrate = self.opp_pool[opp_id].cal_winrate()  # calculate the weighted winrate of the opponent.
-                opp_score = 50 + 100 * opp_winrate  
+                opp_winrate = self.opp_pool[opp_id].cal_winrate()  # calculate the average winrate of the opponent.
+                opp_score = -50 + 100 * opp_winrate  
                     # if 50% winrate, score will be 100 (default score)
-                    # range of estimated opp_score: 50 - 150
+                    # range of estimated opp_score: -50 - 50
             else:
                 opp_score = self.opp_pool[opp_id].score
             # Score Calculation Formula
-            relative_score_diff = (opp_score - self.score)/100  # weighted relative difference in score
-            # print(self.score, opp_score, relative_score_diff)
-            score_weight = exp(sign(winrate) * relative_score_diff) * 10  # score weight defines how relative score difference affects the actual change in score linearly to winrate
-            self.score += score_weight * (winrate - relative_score_diff)
+            relative_score_diff = tanh((opp_score - self.score)/100)  # weighted relative difference in score
+            try:
+                score_weight = exp(sign(winrate) * relative_score_diff)  # score weight defines how relative score difference affects the actual change in score linearly to winrate
+            except OverflowError:
+                raise OverflowError(f"Overflow Error occured -> winrate: {winrate}, self_score: {self.score}, opp_score: {opp_score}, relative_score_diff: {relative_score_diff}")
+            self.score += score_weight * (winrate - relative_score_diff) * 0.1
 
     def update(self, results, cal_score=True):
         self.skip_opps(results.keys())

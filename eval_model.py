@@ -89,7 +89,7 @@ def eval_model(
                     break
     
         n_wins = sum(new_matches)
-        print(f"All matches against opponent {opp_id} completed. Win - Loss : {n_wins} - {n_games - n_wins}. Progress: {opp_index} / {n_opps}")
+        print(f"All matches against opponent {opp_id} completed. Win - Loss : {n_wins} - {n_games - n_wins}. Progress: {opp_index+1} / {n_opps}")
         
         # add matches to evaluation match history
         summary['n_games'] += n_games
