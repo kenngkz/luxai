@@ -34,6 +34,8 @@ class ModelScore:
             self.score = 0
         for opp_id, summary in results.items():
             winrate = 2 * summary["winrate"] - 1  # convert winrate to be between -1.0 and 1.0
+            self.score += winrate
+            '''
             if self.opp_pool[opp_id].score == None:
                 opp_winrate = self.opp_pool[opp_id].cal_winrate()  # calculate the average winrate of the opponent.
                 opp_score = -10 + 10 * opp_winrate  
@@ -48,6 +50,7 @@ class ModelScore:
             except OverflowError:
                 raise OverflowError(f"Overflow Error occured -> winrate: {winrate}, self_score: {self.score}, opp_score: {opp_score}, relative_score_diff: {relative_score_diff}")
             self.score += score_weight * (winrate - relative_score_diff) * 0.1
+            '''
 
     def update(self, results, cal_score=True):
         self.skip_opps(results.keys())
@@ -61,10 +64,17 @@ class ModelScore:
             try:
                 self.remaining_opp.remove(id)
             except ValueError:
-                print(f"Opponent ID {id} not in the remaining opponent list of ModelScore with id {self.id}. Model {self.id} has likely played against {id} before.\n{self.results}")
+                pass
+                # print(f"Opponent ID {id} not in the remaining opponent list of ModelScore with id {self.id}. Model {self.id} has likely played against {id} before.\n{self.results}")
 
     def __ge__(self, other):
-        return self.score >= other.score
+        try:
+            return self.score >= other.score
+        except TypeError as e:
+            raise Exception(f"{e}\nself.id: {self.id}, self.score: {self.score}, other.id: {other.id}, other.score: {other.score}")
 
     def __le__(self, other):
-        return self.score <= other.score
+        try:
+            return self.score <= other.score
+        except TypeError as e:
+            raise Exception(f"{e}\nself.id: {self.id}, self.score: {self.score}, other.id: {other.id}, other.score: {other.score}")
