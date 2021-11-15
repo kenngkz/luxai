@@ -4,7 +4,7 @@ Train and evaluate a stage (pool of models in the same phase of training).
 
 # Imports
 from sys import path
-path.append("C:\\Users\\lenovo\\Desktop\\Coding\\CustomModules")  # allows custom_modules to be imported
+path.append("C:\\Users\\kenng\\Desktop\\Coding\\CustomModules")  # allows custom_modules to be imported
 
 from train_loop import train_loop
 from eval_model import eval_model
@@ -12,13 +12,19 @@ from utility import get_existing_models
 from model_score import ModelScore
 from data_structures.quickselect import select_k
 
-import random
 
+import random
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
 
 def train_stage(params:dict, stage_path, replay=False):
     '''
     Run a training stage
     '''
+    # Auto-adjust model_path to end with '/'
+    if stage_path[-1] != '/' and stage_path[-1] != '\\':
+        stage_path += '/'
 
     def add_opt_args(input_args, output_args, arg_names):
         for name in arg_names:
@@ -66,90 +72,93 @@ def train_stage(params:dict, stage_path, replay=False):
 
     return model_ids
 
-def eval_stage(stage_path, n_select, model_ids=None, n_games=3, max_steps=1000, resume=False):
+def eval_stage(stage_path, n_select, benchmark_models, model_ids=None, n_games=5, max_steps=1000, resume=False):
     '''
+    Second version of eval_stage: 2.0
     Evaluates all models in a given stage folder, then selects the models with the top n_select scores.
     '''
+    # Auto-adjust paths to end with '/'
+    if stage_path[-1] != '/' and stage_path[-1] != '\\':
+        stage_path += '/'
 
-    def update_eval_file(path, eval_completed_status, score=None):
-        with open(path, 'r') as f:
-            eval_info = eval(f.read())
-        if score:
-            eval_info['score'] = score
-        eval_info['eval_completed'] = eval_completed_status
-        with open(path, 'w') as f:
-            f.write(str(eval_info))
+    # File names and paths
+    BEST_MODELS_FILE_NAME = "best_models.txt"
+    BENCHMARK_MODELS_FILE_NAME = "benchmark_models.txt"
+    EVAL_RESULTS_FILE_NAME = "eval_results.txt"
+    best_models_file_path = stage_path + BEST_MODELS_FILE_NAME
+    benchmark_models_file_path = stage_path + BENCHMARK_MODELS_FILE_NAME
+    eval_results_file_path = stage_path + EVAL_RESULTS_FILE_NAME
 
+    # Get list of models to evaluate
     if not model_ids:
         model_ids = get_existing_models(stage_path + 'modellist.txt')
     n_models = len(model_ids)
+    n_benchmarks = len(benchmark_models)
 
-    # Initiliaze a ModelScore for every model to be evaluated
-        # the skip dict indicates if a model eval should be skipped
-    model_scores = {}
-    skip = {}
-    for id in model_ids:
-        model_scores[id] = ModelScore(id)
-        skip[id] = False
-    # Allow every ModelScore to access all other ModelScores
-    for model_score in model_scores.values():
-        model_score.add_pool(model_scores)
-
-    # If selecting a small portion of n_models and there are at least 8 models, 
-        # eliminate half of the pool to reduce computation time
-    if n_select/n_models < 0.45 and n_models > 7:
-        for model_index, id in enumerate(model_ids):
-            model_score = model_scores[id]
-            if resume:  # check if model has been evaluated before (score value recorded in eval.json)
-                try:
-                    with open(stage_path + id + '/eval.json', 'r') as f:
-                        eval_info = eval(f.read())
-                    if 'eval_completed' in eval_info:
-                        if eval_info['eval_completed']:
-                            skip[id] = True
-                            continue
-                    if 'score' in eval_info:  # if the model already has a score, skip only the preliminary evaluation
-                        print(f"Preliminary evaluation for model {id} skipped. Preliminary evaluation already completed.")
-                        played_opps = list(eval_info['history'].keys())
-                        model_score.skip_opps(played_opps)
-                        continue
-                except FileNotFoundError:
-                    pass
-            print(f"Preliminary Evaluation for model {id}. Pending: {n_models - model_index - 1} / {n_models}")
-            opp_paths = random.sample([stage_path+opp_id for opp_id in model_score.remaining_opp], int(n_models/2))
-            results = eval_model(stage_path+id, opp_paths, n_games=n_games, max_steps=max_steps)
-            model_score.update(results)
-            update_eval_file(stage_path+id+'/eval.json', False, model_score.score)
-            
-        _, i, sorted_scores = select_k([model_score for model_score in model_scores.values()], int(n_models/2))
-        final_model_ids  = sorted_scores[:i+1]
-        dropped_models = sorted_scores[i+1:]
+    # Load eval_results from file if the file exists
+    if os.path.exists(eval_results_file_path):
+        with open(eval_results_file_path, 'r') as f:
+            eval_results = eval(f.read())
     else:
-        final_model_ids = model_ids
-        dropped_models = []
+        eval_results = {}
 
-    # Set all dropped_models eval_completed status to True
-    for id in dropped_models:
-        update_eval_file(stage_path+id+'/eval.json', True)
+    # Run evaluation games against benchmark models
+    for model_index, model_id in enumerate(model_ids):
+        if resume:
+            if model_id in eval_results:
+                print(f"Evaluation for model {model_id} skipped.")
+                continue
+        print(f"Evaluation for model {model_id}. Pending: {n_models - model_index - 1} / {n_models}")
+        results = eval_model(stage_path+model_id, benchmark_models, n_games=n_games, max_steps=max_steps, overwrite=True)
+        eval_results[model_id] = results
+        with open(eval_results_file_path, 'w') as f:
+            f.write(str(eval_results))
+    
+    # Calculate average winrate
+    model_scores = [ModelScore(model_id, sum(eval_results[model_id].values())/n_benchmarks) for model_id in model_ids]
 
-    # Select the final n best models 
-    for model_index, id in enumerate(final_model_ids):
-        if resume and skip[id]:
-            print(f"Model {id} skipped: Evaluation already complete")
-            continue
-        print(f"Final Evaluation for model {id}. Pending: {n_models - model_index - 1} / {n_models}")
-        results = eval_model(stage_path+id, [stage_path+opp_id for opp_id in model_score.remaining_opp], n_games=n_games, max_steps=max_steps)
-        model_scores[id].update(results)
-        update_eval_file(stage_path+id+'/eval.json', True, model_score.score)
+    # Select the top 'n_select' models
+    _, i, sorted_scores = select_k(model_scores, n_select)
+    best_models = sorted_scores[:i+1]
+    best_models = {model_score.id:model_score.score for model_score in best_models}
 
-    _, i, selected_scores = select_k([model_score for model_score in model_scores.values()], n_select)
+    # Save the best models into a file
+    with open(best_models_file_path, 'w') as f:
+        f.write(str(best_models))
 
-    # Update all eval.json files for every model to include their score
-    for id, model_score in model_scores.items():
-        with open(stage_path + id + '/eval.json', 'r') as f:
-            eval_info = eval(f.read())
-        eval_info['score'] = model_score.score
-        with open(stage_path + id + '/eval.json', 'w') as f:
-            f.write(str(eval_info))
+    # Get new benchmark models
+    _, i, sorted_scores = select_k(model_scores, n_benchmarks)
+    benchmark_models = sorted_scores[:i+1]
+    benchmark_models = [stage_path + model_score.id for model_score in benchmark_models]
 
-    return [model_score.id for model_score in selected_scores[:i+1]]
+    # Save the new benchmark models paths
+    with open(benchmark_models_file_path, 'w') as f:
+        f.write(str(benchmark_models))
+
+    return best_models
+
+
+def get_scores_data(stage_path):
+    '''
+    Retrieve score for all models in a given stage and returns the scores as a pd.DataFrame
+    '''
+    # Auto-adjust model_path to end with '/'
+    if stage_path[-1] != '/' or stage_path[-1] != '\\':
+        stage_path += '/'
+
+    # File names and paths
+    BEST_MODELS_FILE_NAME = "best_models.txt"
+    best_models_file_path = stage_path + BEST_MODELS_FILE_NAME
+
+    with open(best_models_file_path, 'r') as f:
+        best_models = eval(f.read())
+    scores_data = pd.DataFrame(list(best_models.items()), columns=['id', 'score'])
+
+    return scores_data
+
+def plot_scores(stage_path):
+    scores = get_scores_data(stage_path)
+    plt.hist(scores["score"], bins=40)
+    # plt.axvline(x=scores["score"].mean(), color='r', label='mean')
+    # plt.legend()
+    plt.show()

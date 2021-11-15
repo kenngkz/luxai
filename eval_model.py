@@ -16,7 +16,7 @@ def eval_model(
     opp_paths:list,
     n_games=10,
     max_steps=10000,
-    seed=random.randint(0, 10000),
+    seeds=None,
     replay_dir='eval_replay/',
     replay_prefix='replay',
     save=True,  # True to save replays
@@ -26,8 +26,12 @@ def eval_model(
     Evaluate how good a model is. Plays the given model with an opponent and records the win percentage.
     '''
     # Auto-adjust model_path to end with '/'
-    if model_path[-1] != '/' or model_path[-1] != '\\':
+    if model_path[-1] != '/' and model_path[-1] != '\\':
         model_path += '/'
+    # Set seeds
+    if not seeds:
+        seeds = [random.randint(0, 10000) for _ in range(n_games)]
+    assert len(seeds) == n_games, "Length of 'seeds' arg does not match n_games."
 
     # Set env configs
     configs = LuxMatchConfigs_Default
@@ -39,7 +43,7 @@ def eval_model(
     player = ply_policy_obj(mode='train')
     model=PPO.load(model_path+'model.zip')
 
-    # Check for existing eval history
+    # Check for existing eval history  TODO: edit this to work with ScoreNode and ScoreGraph
     try:
         with open(model_path+'eval.json', 'r') as f:
             eval_history = eval(f.read())['history']
@@ -73,7 +77,7 @@ def eval_model(
 
         # Run games and save replay
         for n in range(n_games):
-            configs['seed'] = seed
+            configs['seed'] = seeds[n]
             if save:
                 replay_name = replay_prefix + f'_{opp_id}_{n}'
                 env = LuxEnvironment(configs, player, opponent, replay_folder=model_path+replay_dir, replay_prefix=replay_name)
@@ -89,22 +93,22 @@ def eval_model(
                     break
     
         n_wins = sum(new_matches)
-        print(f"All matches against opponent {opp_id} completed. Win - Loss : {n_wins} - {n_games - n_wins}. Progress: {opp_index} / {n_opps}")
+        print(f"All matches against opponent {opp_id} completed. Win - Loss : {n_wins} - {n_games - n_wins}. Progress: {opp_index+1} / {n_opps}")
         
         # add matches to evaluation match history
-        summary['n_games'] += n_games
-        summary['n_wins'] += n_wins
-        summary['winrate'] = summary['n_wins']/summary['n_games']
+        summary["n_games"] += n_games
+        summary["n_wins"] += n_wins
+        summary["winrate"] = summary["n_wins"]/summary["n_games"]
 
         eval_history[opp_id] = summary
         results[opp_id] = summary
 
     with open(model_path+'eval.json', 'w') as f:
-        f.write(str({'history':eval_history}))
+        f.write(str({"history":eval_history}))
 
     print(f"Evaluation for model {ply_info['run_id']} complete.")
     total_games = n_games * n_opps
-    total_wins = sum([summ['n_wins'] for summ in results.values()])
+    total_wins = sum([summ["n_wins"] for summ in results.values()])
     print(f"Results -> Total Wins - Total Losses : {total_wins} - {total_games-total_wins}")
 
     return results
