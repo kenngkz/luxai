@@ -26,7 +26,7 @@ def eval_model(
     Evaluate how good a model is. Plays the given model with an opponent and records the win percentage.
     '''
     # Auto-adjust model_path to end with '/'
-    if model_path[-1] != '/' or model_path[-1] != '\\':
+    if model_path[-1] != '/' and model_path[-1] != '\\':
         model_path += '/'
     # Set seeds
     if not seeds:

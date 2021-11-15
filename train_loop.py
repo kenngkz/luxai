@@ -49,7 +49,7 @@ def train_loop(
 
     if ply_path:
         # auto-adjust ply_path to add '/' if not already included
-        if ply_path[-1] != '/' or ply_path[-1] != '\\':
+        if ply_path[-1] != '/' and ply_path[-1] != '\\':
             ply_path += '/'
         # get info and set player policy and model
         with open(ply_path + 'info.json', 'r') as f:
@@ -70,7 +70,7 @@ def train_loop(
     # Set opponent
     if opp_path:
         # auto-adjust opp_path to add '/' if not already included
-        if opp_path[-1] != '/' or opp_path[-1] != '\\':
+        if opp_path[-1] != '/' and opp_path[-1] != '\\':
             opp_path += '/'
         # get info and set opponent policy and model
         with open(opp_path + 'info.json', 'r') as f:
@@ -140,11 +140,11 @@ def train_loop(
         train_history = []
     
     last_train = datetime.now().strftime("%d/%m/%Y-%H:%M:%S")
-    train_params = {'learning_rate':learning_rate, 'gamma':gamma, 'gae_lambda':gae_lambda}
+    train_params = {'policy':ply_policy, 'learning_rate':learning_rate, 'gamma':gamma, 'gae_lambda':gae_lambda}
     opp_info = {'policy':opp_policy, 'model':opp_path}
     train_history.append({'step_count':step_count, 'train_params':train_params, 'opponent':opp_info, 'date_time':last_train})
 
-    info = {'run_id':run_id, 'last_train':last_train, 'policy':ply_policy, 'parents':parents, 'train_params':train_params, 'train_history':train_history}
+    info = {'run_id':run_id, 'last_train':last_train, 'parents':parents, 'train_params':train_params, 'train_history':train_history}
     with open(new_model_path + 'info.json', 'w') as f:
         f.write(str(info))
 
