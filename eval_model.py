@@ -16,7 +16,7 @@ def eval_model(
     opp_paths:list,
     n_games=10,
     max_steps=10000,
-    seed=random.randint(0, 10000),
+    seeds=None,
     replay_dir='eval_replay/',
     replay_prefix='replay',
     save=True,  # True to save replays
@@ -28,6 +28,10 @@ def eval_model(
     # Auto-adjust model_path to end with '/'
     if model_path[-1] != '/' or model_path[-1] != '\\':
         model_path += '/'
+    # Set seeds
+    if not seeds:
+        seeds = [random.randint(0, 10000) for _ in range(n_games)]
+    assert len(seeds) == n_games, "Length of 'seeds' arg does not match n_games."
 
     # Set env configs
     configs = LuxMatchConfigs_Default
@@ -39,7 +43,7 @@ def eval_model(
     player = ply_policy_obj(mode='train')
     model=PPO.load(model_path+'model.zip')
 
-    # Check for existing eval history
+    # Check for existing eval history  TODO: edit this to work with ScoreNode and ScoreGraph
     try:
         with open(model_path+'eval.json', 'r') as f:
             eval_history = eval(f.read())['history']
@@ -73,7 +77,7 @@ def eval_model(
 
         # Run games and save replay
         for n in range(n_games):
-            configs['seed'] = seed
+            configs['seed'] = seeds[n]
             if save:
                 replay_name = replay_prefix + f'_{opp_id}_{n}'
                 env = LuxEnvironment(configs, player, opponent, replay_folder=model_path+replay_dir, replay_prefix=replay_name)

@@ -9,16 +9,22 @@ path.append("C:\\Users\\lenovo\\Desktop\\Coding\\CustomModules")  # allows custo
 from train_loop import train_loop
 from eval_model import eval_model
 from utility import get_existing_models
-from model_score import ModelScore
+# from model_score import ModelScore
 from data_structures.quickselect import select_k
+from score_graph import ScoreGraph, ModelScore
 
 import random
-from math import exp
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
 
 def train_stage(params:dict, stage_path, replay=False):
     '''
     Run a training stage
     '''
+    # Auto-adjust model_path to end with '/'
+    if stage_path[-1] != '/' or stage_path[-1] != '\\':
+        stage_path += '/'
 
     def add_opt_args(input_args, output_args, arg_names):
         for name in arg_names:
@@ -66,98 +72,46 @@ def train_stage(params:dict, stage_path, replay=False):
 
     return model_ids
 
-def eval_stage(stage_path, n_select, model_ids=None, n_games=3, max_steps=1000, resume=False):
+def eval_stage(stage_path, n_select, benchmark_models, model_ids=None, n_games=5, max_steps=1000, resume=False):
     '''
+    First version of eval_stage
     Evaluates all models in a given stage folder, then selects the models with the top n_select scores.
     '''
+    # Auto-adjust paths to end with '/'
+    if stage_path[-1] != '/' or stage_path[-1] != '\\':
+        stage_path += '/'
+    for path in benchmark_models:
+        if path[-1] != '/' or path[-1] != '\\':
+            path += '/'
 
-    def update_eval_file(path, eval_completed_status, score=None):
-        '''
-        Edits eval.json to update the given score and eval_completed_status.
-        '''
-        with open(path, 'r') as f:
-            eval_info = eval(f.read())
-        if score:
-            eval_info["score"] = score
-        eval_info["eval_completed"] = eval_completed_status
-        with open(path, 'w') as f:
-            f.write(str(eval_info))
+    # File names and paths
+    BEST_MODELS_FILE_NAME = "best_models.txt"
+    best_models_file_path = stage_path + BEST_MODELS_FILE_NAME
 
-    if not model_ids:
-        model_ids = get_existing_models(stage_path + 'modellist.txt')
-    n_models = len(model_ids)
-    # function to determine how many opps in the preliminary stage
-    m = - 1 / 3 / 100
-    c = 0.5 - 10 * m
-    n_samples = n_models * max(0.26, n_models * m + c)
 
-    # Initiliaze a ModelScore for every model to be evaluated
-        # the skip dict indicates if a model eval should be skipped
-    model_scores = {}
-    skip = {}
-    for id in model_ids:
-        model_scores[id] = ModelScore(id)
-        skip[id] = False
-    # Allow every ModelScore to access all other ModelScores
-    for model_score in model_scores.values():
-        model_score.add_pool(model_scores)
 
-    # If selecting a small portion of n_models and there are at least 8 models, 
-        # eliminate half of the pool to reduce computation time
-    if n_select/n_models < 0.45 and n_models > 7:
-        for model_index, id in enumerate(model_ids):
-            model_score = model_scores[id]
-            if resume:  # check if model has been evaluated before (score value recorded in eval.json)
-                try:
-                    with open(stage_path + id + '/eval.json', 'r') as f:
-                        eval_info = eval(f.read())
-                    if 'eval_completed' in eval_info:
-                        if eval_info["eval_completed"]:
-                            skip[id] = True
-                            continue
-                    if 'score' in eval_info:  # if the model already has a score, skip only the preliminary evaluation
-                        print(f"Preliminary evaluation for model {id} skipped. Preliminary evaluation already completed.")
-                        played_opps = list(eval_info['history'].keys())
-                        model_score.skip_opps(played_opps)
-                        continue
-                except FileNotFoundError:
-                    pass
-            print(f"Preliminary Evaluation for model {id}. Pending: {n_models - model_index - 1} / {n_models}")
-            opp_paths = random.sample([stage_path+opp_id for opp_id in model_score.remaining_opp], int(n_samples))
-            results = eval_model(stage_path+id, opp_paths, n_games=n_games, max_steps=max_steps)
-            model_score.update(results)
-            update_eval_file(stage_path+id+'/eval.json', False, model_score.score)
-            print(f"Score for model {id}: {model_score.score}")
-            
-        _, i, sorted_scores = select_k([model_score for model_score in model_scores.values()], int(n_models/2))
-        final_model_ids  = sorted_scores[:i+1]
-        dropped_models = sorted_scores[i+1:]
-    else:
-        final_model_ids = model_ids
-        dropped_models = []
+def get_scores_data(stage_path):
+    '''
+    Retrieve score for all models in a given stage and returns the scores as a pd.DataFrame
+    '''
+    # Auto-adjust model_path to end with '/'
+    if stage_path[-1] != '/' or stage_path[-1] != '\\':
+        stage_path += '/'
 
-    # Set all dropped_models eval_completed status to True
-    for id in dropped_models:
-        update_eval_file(stage_path+id+'/eval.json', True)
+    # File names and paths
+    GRAPH_FILE_NAME = "score_graph.txt"
+    graph_file_path = stage_path + GRAPH_FILE_NAME
 
-    # Select the final n best models 
-    for model_index, id in enumerate(final_model_ids):
-        if resume and skip[id]:
-            print(f"Model {id} skipped: Evaluation already complete")
-            continue
-        print(f"Final Evaluation for model {id}. Pending: {n_models - model_index - 1} / {n_models}")
-        results = eval_model(stage_path+id, [stage_path+opp_id for opp_id in model_score.remaining_opp], n_games=n_games, max_steps=max_steps)
-        model_scores[id].update(results)
-        update_eval_file(stage_path+id+'/eval.json', True, model_score.score)
+    score_graph = ScoreGraph.load(graph_file_path)
+    model_ids = score_graph.info()["nodes"]
+    scores_data = pd.DataFrame(list(score_graph.get_scores(model_ids).items()), columns=['id', 'score'])
+    for model_id in model_ids:
+        scores_data.loc[scores_data['id']==model_id, 'score'] = score_graph.get_score(model_id)
+    return scores_data
 
-    _, i, selected_scores = select_k([model_score for model_score in model_scores.values()], n_select)
-
-    # Update all eval.json files for every model to include their score
-    for id, model_score in model_scores.items():
-        with open(stage_path + id + '/eval.json', 'r') as f:
-            eval_info = eval(f.read())
-        eval_info["score"] = model_score.score
-        with open(stage_path + id + '/eval.json', 'w') as f:
-            f.write(str(eval_info))
-
-    return [model_score.id for model_score in selected_scores[:i+1]]
+def plot_scores(stage_path):
+    scores = get_scores_data(stage_path)
+    plt.hist(scores["score"], bins=40)
+    # plt.axvline(x=scores["score"].mean(), color='r', label='mean')
+    # plt.legend()
+    plt.show()
