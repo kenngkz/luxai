@@ -1,6 +1,6 @@
 # Allow custom modules to be imported
 from sys import path
-path.append("C:\\Users\\lenovo\\Desktop\\Coding\\CustomModules")
+path.append("C:\\Users\\kenng\\Desktop\\Coding\\CustomModules")
 from stage import eval_stage, train_stage, get_scores_data
 from utility import get_existing_models
 
@@ -23,7 +23,7 @@ def main():
     '''
     # Variables
     stage_size = 30  # number of models in 1 stage
-    select = 20  # select the top 'select' models to pass into the next stage
+    select = 8  # select the top 'select' models to pass into the next stage
     spawn_new = 5  # each selected model should spawn 'spawn_new' new models
     ini_steps = 1000000  # number of steps to train in the first stage (stage 0)
     stage_steps = 100000  # number of steps to train between each stage
@@ -116,7 +116,12 @@ def main():
     if not os.path.exists(stage_path):
         os.mkdir(stage_path)
     # models = train_stage(ini_train_params, stage_path)
-    best_models = eval_stage(stage_path, select, resume=False)
+    with open(stage_path + 'best_models.txt', 'r') as f:
+        benchmark_models = eval(f.read())
+        benchmark_models = [stage_path + opp_id for opp_id in benchmark_models]
+        with open(stage_path + 'benchmark_models.txt', 'w') as f:
+            f.write(str(benchmark_models))
+    best_models = eval_stage(stage_path, select, benchmark_models, resume=True)
     print(f"Best models in stage_0: {best_models}")
     
     return None
