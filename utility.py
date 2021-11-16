@@ -136,3 +136,28 @@ def gen_run_ids(params, stage_path=None, resume=False):
         with open(stage_path + 'train_params.txt', 'w') as f:
             f.write(str(p))
     return p
+
+def get_scores_data(stage_path):
+    '''
+    Retrieve score for all models in a given stage and returns the scores as a pd.DataFrame
+    '''
+    # Auto-adjust model_path to end with '/'
+    if stage_path[-1] != '/' or stage_path[-1] != '\\':
+        stage_path += '/'
+
+    # File names and paths
+    BEST_MODELS_FILE_NAME = "best_models.txt"
+    best_models_file_path = stage_path + BEST_MODELS_FILE_NAME
+
+    with open(best_models_file_path, 'r') as f:
+        best_models = eval(f.read())
+    scores_data = pd.DataFrame(list(best_models.items()), columns=['id', 'score'])
+
+    return scores_data
+
+def plot_scores(stage_path):
+    scores = get_scores_data(stage_path)
+    plt.hist(scores["score"], bins=40)
+    # plt.axvline(x=scores["score"].mean(), color='r', label='mean')
+    # plt.legend()
+    plt.show()
