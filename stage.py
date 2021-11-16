@@ -134,7 +134,7 @@ def eval_stage(stage_path, n_select, benchmark_models, model_ids=None, n_games=5
             f.write(str(eval_results))
     
     # Calculate average winrate
-    model_scores = [ModelScore(model_id, sum(eval_results[model_id].values())/n_benchmarks) for model_id in model_ids]
+    model_scores = [ModelScore(model_id, sum([eval_results[model_id][opp_id]['winrate'] for opp_id in eval_results[model_id].keys()])/n_benchmarks) for model_id in model_ids]
 
     # Select the top 'n_select' models
     _, i, sorted_scores = select_k(model_scores, n_select)

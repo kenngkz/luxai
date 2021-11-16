@@ -118,9 +118,9 @@ def main():
     # models = train_stage(ini_train_params, stage_path)
     with open(stage_path + 'best_models.txt', 'r') as f:
         benchmark_models = eval(f.read())
-        benchmark_models = [stage_path + opp_id for opp_id in benchmark_models]
-        with open(stage_path + 'benchmark_models.txt', 'w') as f:
-            f.write(str(benchmark_models))
+        # benchmark_models = [stage_path + opp_id for opp_id in benchmark_models]
+        # with open(stage_path + 'benchmark_models.txt', 'w') as f:
+        #     f.write(str(benchmark_models))
     best_models = eval_stage(stage_path, select, benchmark_models, resume=True)
     print(f"Best models in stage_0: {best_models}")
     
