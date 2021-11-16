@@ -52,7 +52,7 @@ def train_stage(params:dict, stage_path, replay=False, resume=False):
     for train_index, model_train_params in enumerate(params):
         if resume:  # look for info.json -> info.json is saved after training.
             if os.path.exists(stage_path + model_train_params['run_id'] + '/info.json'):
-                model_ids += model_train_params['run_id']
+                model_ids += [model_train_params['run_id']]
                 print(f"Training for model {model_train_params['run_id']} skipped. Already completed.")
                 continue
         # Check that 'model_path' or 'model_policy' is provided
@@ -90,7 +90,7 @@ def train_stage(params:dict, stage_path, replay=False, resume=False):
         model_id = [train_loop(**train_loop_args) for _ in range(n)]
         model_ids += model_id
 
-    print(f"Training stage complete. Models {model_ids} saved in {stage_path}")
+    print(f"Training stage {stage_path[-2]} complete. Models {model_ids} saved in {stage_path}")
 
     return model_ids
 
@@ -156,5 +156,5 @@ def eval_stage(stage_path, n_select, benchmark_models, model_ids=None, n_games=5
     # Save the new benchmark models paths
     with open(benchmark_models_file_path, 'w') as f:
         f.write(str(benchmark_models))
-        
+
     return best_models

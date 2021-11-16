@@ -38,7 +38,7 @@ def eval_model(
     # Set player
     with open(model_path + 'info.json', 'r') as f:
         ply_info = eval(f.read())
-    ply_policy = ply_info['policy']
+    ply_policy = ply_info['train_params']['policy']
     ply_policy_obj = import_module('models.' + ply_policy).AgentPolicy
     player = ply_policy_obj(mode='train')
     model=PPO.load(model_path+'model.zip')
@@ -62,7 +62,7 @@ def eval_model(
         with open(opp_path + 'info.json', 'r') as f:
             opp_info = eval(f.read())
         opp_id = opp_info['run_id']
-        opp_policy = opp_info['policy']
+        opp_policy = opp_info['train_params']['policy']
         opp_policy_obj = import_module('models.' + opp_policy).AgentPolicy
         # initialize opponent
         opponent = opp_policy_obj(mode='inference', model=PPO.load(opp_path+'model.zip'))

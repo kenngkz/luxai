@@ -1,11 +1,13 @@
 # Allow custom modules to be imported
 from sys import path
 path.append("C:\\Users\\kenng\\Desktop\\Coding\\CustomModules")
-from stage import eval_stage, train_stage, get_scores_data
+from stage import eval_stage, train_stage
 from utility import get_existing_models, get_benchmarks, get_best_stats, gen_run_ids
 
 import os
 import sys
+
+
 
 def main():
     '''
@@ -160,6 +162,8 @@ def main():
         if os.path.exists(stage_paths[i] + BEST_MODELS_FILE_NAME):
             print(f"Stage {i} completed. {n_stages - i} stages remaining.")
             continue
+        else:
+            print(f"Stage {i} begins. {n_stages - i} stages remaining.")
         if not os.path.exists(stage_paths[i]):
             os.mkdir(stage_paths[i])
         prev_best_models = get_best_stats(stage_paths[i-1])['id']
@@ -178,6 +182,7 @@ def main():
     
     return None
 
+
 if __name__ == "__main__":
     if sys.version_info < (3,7) or sys.version_info >= (3,8):
         os.system("")
@@ -194,4 +199,4 @@ if __name__ == "__main__":
 
     main()
 
-    # Note: run this file from LuxAI/rl/scripts 
+    # Note: run this file from LuxAI/rl/scripts

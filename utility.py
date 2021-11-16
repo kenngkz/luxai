@@ -6,6 +6,7 @@ Utility functions that are useful for other functions
 import random
 import os
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from luxai2021.game.constants import LuxMatchConfigs_Default
 from luxai2021.env.lux_env import LuxEnvironment
@@ -63,9 +64,6 @@ def clear_eval_files():
             os.remove(stage_path + model_id + '/eval.json')
 
 def get_best_stats(stage_path):
-    '''
-    Use with stage 0 only.
-    '''
     BEST_MODELS_FILE_NAME = "best_models.txt"
 
     # Auto-adjust model_path to end with '/'
@@ -126,9 +124,19 @@ def gen_run_ids(params, stage_path=None, resume=False):
                 with open(stage_path + 'train_params.txt', 'r') as f:
                     p = eval(f.read())
                 return p
-    p = params.copy()
-    for param in p:
-        param['run_id'] = str(random.randint(0, RAN_RANGE))
+    p = []
+    for i, param in enumerate(params):
+        mini_param = param.copy()
+        existing_models = get_existing_models(stage_path + 'modellist.txt')
+        for _ in range(RAN_RANGE*10):
+            run_id = random.randint(1, RAN_RANGE)
+            if str(run_id) not in existing_models:
+                break
+        else:
+            raise Exception(f"Cannot assign random run_id to model. stage_path: {stage_path}")
+        mini_param['run_id'] = str(run_id)
+        p.append(mini_param)
+        # print(i, run_id)
     if stage_path:
         # Auto-adjust model_path to end with '/'
         if stage_path[-1] != '/' and stage_path[-1] != '\\':
