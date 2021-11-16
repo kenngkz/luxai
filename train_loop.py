@@ -4,11 +4,11 @@ Trains a single model through many timesteps and games and saves the trained mod
 # Imports
 from utility import get_existing_models
 
+import os
 import random
+from datetime import datetime
 from importlib import import_module
 from stable_baselines3 import PPO
-from datetime import datetime
-import os
 
 from luxai2021.game.constants import LuxMatchConfigs_Default
 from luxai2021.env.lux_env import LuxEnvironment, SaveReplayAndModelCallback
@@ -56,15 +56,12 @@ def train_loop(
             ply_info = eval(f.read())
         if not ply_policy:
             ply_policy = ply_info['policy']
-        ply_policy_obj = import_module('models.' + ply_policy).AgentPolicy
-        ply_model = PPO.load(ply_path + 'model.zip')
     else:
         ply_info = None
         if not ply_policy:
             ply_policy = 'agent_policy'
-        ply_policy_obj = import_module('models.' + ply_policy).AgentPolicy
-        ply_model = None
     # initialize player
+    ply_policy_obj = import_module('models.' + ply_policy).AgentPolicy
     player = ply_policy_obj(mode='train')
 
     # Set opponent
@@ -76,25 +73,31 @@ def train_loop(
         with open(opp_path + 'info.json', 'r') as f:
             opp_info = eval(f.read())
         opp_policy = opp_info['policy']
-        opp_policy_obj = import_module('models.' + opp_policy).AgentPolicy
         opp_model = PPO.load(opp_path + 'model.zip')
     else:
         opp_info = None
         opp_policy = 'agent_blank'
-        opp_policy_obj = import_module('models.' + opp_policy).AgentPolicy
         opp_model = None
     # initialize opponent
+    opp_policy_obj = import_module('models.' + opp_policy).AgentPolicy
     opponent = opp_policy_obj(mode='inference', model=opp_model)
 
     # Set up env and PPO model
     env = LuxEnvironment(configs, player, opponent)
-    if ply_model:
-        ply_model.set_env(env)
+    if ply_path:
+        ply_model = PPO.load(
+            ply_path + 'model.zip', 
+            env=env, 
+            tensorboard_log=tensorboard_log, 
+            learning_rate=learning_rate,
+            gamma=gamma,
+            gae_lambda=gae_lambda
+        )
     else:
         ply_model = PPO("MlpPolicy",
         env,
         verbose=1,
-        tensorboard_log=tensorboard_log,
+        tensorboard_log = tensorboard_log,
         learning_rate = learning_rate,
         gamma=gamma,
         gae_lambda = gae_lambda
@@ -155,5 +158,5 @@ def train_loop(
         print(f"Existing model.zip found in file location {new_model_path}. Creating a new file with name model2.zip in the same directory ({new_model_path})")
         ply_model.save(path=new_model_path + 'model2.zip')
 
-    print(f"Save complete. Folder name: {run_id}")
+    print(f"Training for model {run_id} complete. model zip file saved in path: {new_model_path}")
     return run_id

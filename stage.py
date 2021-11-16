@@ -47,13 +47,16 @@ def train_stage(params:dict, stage_path, replay=False, resume=False):
         else:
             resume = False
 
+    n_models = len(params)
     model_ids = []
     for train_index, model_train_params in enumerate(params):
         if resume:  # look for info.json -> info.json is saved after training.
             if os.path.exists(stage_path + model_train_params['run_id'] + '/info.json'):
-                model_ids += id
+                model_ids += model_train_params['run_id']
+                print(f"Training for model {model_train_params['run_id']} skipped. Already completed.")
                 continue
         # Check that 'model_path' or 'model_policy' is provided
+        print(f"Commencing training for model {model_train_params['run_id']}. Pending: {n_models - train_index - 1} / {n_models}")
         assert 'model_path' in model_train_params or 'model_policy' in model_train_params, "Keys 'model_path' and 'model_policy' not found in params argument. Please enter either one."
         # Set up train_loop args
         train_loop_args = {
@@ -84,8 +87,8 @@ def train_stage(params:dict, stage_path, replay=False, resume=False):
         # Number of copies of the model to generate
         n = model_train_params['n_copies'] if 'n_copies' in model_train_params else 1
         # Run training loop to create n copies of a model
-        id = [train_loop(**train_loop_args) for _ in range(n)]
-        model_ids += id
+        model_id = [train_loop(**train_loop_args) for _ in range(n)]
+        model_ids += model_id
 
     print(f"Training stage complete. Models {model_ids} saved in {stage_path}")
 
