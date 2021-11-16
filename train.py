@@ -7,8 +7,6 @@ from utility import get_existing_models, get_benchmarks, get_best_stats, gen_run
 import os
 import sys
 
-
-
 def main():
     '''
     Main function to execute.
@@ -180,7 +178,6 @@ def main():
     
     return None
 
-
 if __name__ == "__main__":
     if sys.version_info < (3,7) or sys.version_info >= (3,8):
         os.system("")
@@ -197,4 +194,4 @@ if __name__ == "__main__":
 
     main()
 
-    # Note: run this file from LuxAI/rl/scripts
+    # Note: run this file from LuxAI/rl/scripts 

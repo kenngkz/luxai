@@ -156,5 +156,5 @@ def eval_stage(stage_path, n_select, benchmark_models, model_ids=None, n_games=5
     # Save the new benchmark models paths
     with open(benchmark_models_file_path, 'w') as f:
         f.write(str(benchmark_models))
-
+        
     return best_models
