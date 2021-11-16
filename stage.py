@@ -18,10 +18,13 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def train_stage(params:dict, stage_path, replay=False):
+def train_stage(params:dict, stage_path, replay=False, resume=False):
     '''
-    Run a training stage
+    Run a training stage.
+    Resume=True can only be used if run_id is passed in params.
     '''
+    TRAIN_PARAMS_FILE_NAME = "train_params.txt"
+
     # Auto-adjust model_path to end with '/'
     if stage_path[-1] != '/' and stage_path[-1] != '\\':
         stage_path += '/'
@@ -32,9 +35,28 @@ def train_stage(params:dict, stage_path, replay=False):
                 output_args[name] = input_args[name]
         return output_args
 
+    if resume:  # check that previous training params was saved. If not saved, do not resume
+        if os.path.exists(stage_path + TRAIN_PARAMS_FILE_NAME):
+            with open(stage_path + TRAIN_PARAMS_FILE_NAME, 'r') as f:
+                old_train_params = eval(f.read())
+            try:
+                if sum([old_train_params[i]['run_id'] != params[i]['run_id'] for i in range(len(params))]) != 0:
+                    resume = False
+            except KeyError:
+                resume = False
+        else:
+            resume = False
+
+    n_models = len(params)
     model_ids = []
-    for model_train_params in params:
+    for train_index, model_train_params in enumerate(params):
+        if resume:  # look for info.json -> info.json is saved after training.
+            if os.path.exists(stage_path + model_train_params['run_id'] + '/info.json'):
+                model_ids += model_train_params['run_id']
+                print(f"Training for model {model_train_params['run_id']} skipped. Already completed.")
+                continue
         # Check that 'model_path' or 'model_policy' is provided
+        print(f"Commencing training for model {model_train_params['run_id']}. Pending: {n_models - train_index - 1} / {n_models}")
         assert 'model_path' in model_train_params or 'model_policy' in model_train_params, "Keys 'model_path' and 'model_policy' not found in params argument. Please enter either one."
         # Set up train_loop args
         train_loop_args = {
@@ -65,8 +87,8 @@ def train_stage(params:dict, stage_path, replay=False):
         # Number of copies of the model to generate
         n = model_train_params['n_copies'] if 'n_copies' in model_train_params else 1
         # Run training loop to create n copies of a model
-        id = [train_loop(**train_loop_args) for _ in range(n)]
-        model_ids += id
+        model_id = [train_loop(**train_loop_args) for _ in range(n)]
+        model_ids += model_id
 
     print(f"Training stage complete. Models {model_ids} saved in {stage_path}")
 
@@ -115,7 +137,7 @@ def eval_stage(stage_path, n_select, benchmark_models, model_ids=None, n_games=5
             f.write(str(eval_results))
     
     # Calculate average winrate
-    model_scores = [ModelScore(model_id, sum(eval_results[model_id].values())/n_benchmarks) for model_id in model_ids]
+    model_scores = [ModelScore(model_id, sum([eval_results[model_id][opp_id]['winrate'] for opp_id in eval_results[model_id].keys()])/n_benchmarks) for model_id in model_ids]
 
     # Select the top 'n_select' models
     _, i, sorted_scores = select_k(model_scores, n_select)
@@ -134,31 +156,5 @@ def eval_stage(stage_path, n_select, benchmark_models, model_ids=None, n_games=5
     # Save the new benchmark models paths
     with open(benchmark_models_file_path, 'w') as f:
         f.write(str(benchmark_models))
-
+        
     return best_models
-
-
-def get_scores_data(stage_path):
-    '''
-    Retrieve score for all models in a given stage and returns the scores as a pd.DataFrame
-    '''
-    # Auto-adjust model_path to end with '/'
-    if stage_path[-1] != '/' or stage_path[-1] != '\\':
-        stage_path += '/'
-
-    # File names and paths
-    BEST_MODELS_FILE_NAME = "best_models.txt"
-    best_models_file_path = stage_path + BEST_MODELS_FILE_NAME
-
-    with open(best_models_file_path, 'r') as f:
-        best_models = eval(f.read())
-    scores_data = pd.DataFrame(list(best_models.items()), columns=['id', 'score'])
-
-    return scores_data
-
-def plot_scores(stage_path):
-    scores = get_scores_data(stage_path)
-    plt.hist(scores["score"], bins=40)
-    # plt.axvline(x=scores["score"].mean(), color='r', label='mean')
-    # plt.legend()
-    plt.show()
