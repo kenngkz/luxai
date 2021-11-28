@@ -18,10 +18,11 @@ def train(
     learning_rate=0.001,
     gamma=0.995,
     gae_lambda=0.95,
-    replay_freq = 100000,
+    replay_freq = None,
     replay_num = 3,
     stage_prefix = "stage",
-    tensorboard_log="tensorboard_log"
+    tensorboard_log="tensorboard_log",
+    database=WORKER_DATABASE_DIR
 ):
     # Set env configs
     configs = LuxMatchConfigs_Default
@@ -33,12 +34,12 @@ def train(
     old_stage = os.path.dirname(model_path)
     stage_name = f"{stage_prefix}_{int(old_stage[-1])+1}"
     new_model_path = path_join(stage_name, run_id)
-    if not os.path.exists(path_join(WORKER_DATABASE_DIR, new_model_path)):
-        os.makedirs(path_join(WORKER_DATABASE_DIR, new_model_path))
+    if not os.path.exists(path_join(database, new_model_path)):
+        os.makedirs(path_join(database, new_model_path))
 
     # Initialize player
     if model_path:  
-        with open(path_join(WORKER_DATABASE_DIR, model_path, 'info.json'), 'r') as f:
+        with open(path_join(database, model_path, 'info.json'), 'r') as f:
             model_info = eval(f.read())
         if not model_policy:
             model_policy = model_info["policy"]
@@ -51,10 +52,10 @@ def train(
 
     # Initialize opponent
     if opp_path:
-        with open(path_join(WORKER_DATABASE_DIR, opp_path, "info.json"), 'r') as f:
+        with open(path_join(database, opp_path, "info.json"), 'r') as f:
             opp_info = eval(f.read())
         opp_policy = opp_info["policy"]
-        opp_model = PPO.load(path_join(opp_path, "model.zip"))
+        opp_model = PPO.load(path_join(database, opp_path, "model.zip"))
     else:
         opp_info = None
         opp_policy = 'agent_blank'
@@ -68,9 +69,9 @@ def train(
     # Set up the model
     if model_path:
         model = PPO.load(
-            path_join(WORKER_DATABASE_DIR, model_path, "model.zip"), 
+            path_join(database, model_path, "model.zip"), 
             env=env, 
-            tensorboard_log=path_join(WORKER_DATABASE_DIR, new_model_path, tensorboard_log), 
+            tensorboard_log=path_join(database, new_model_path, tensorboard_log), 
             learning_rate=learning_rate,
             gamma=gamma,
             gae_lambda=gae_lambda
@@ -79,7 +80,7 @@ def train(
         model = PPO("MlpPolicy",
         env,
         verbose=1,
-        tensorboard_log = path_join(WORKER_DATABASE_DIR, new_model_path, tensorboard_log),
+        tensorboard_log = path_join(database, new_model_path, tensorboard_log),
         learning_rate = learning_rate,
         gamma=gamma,
         gae_lambda = gae_lambda
@@ -93,19 +94,20 @@ def train(
         opponent_replay = opp_policy_obj(mode="inference", model=opp_model)
     else:
         opponent_replay = opp_policy_obj()
-    callbacks.append(
-        SaveReplayAndModelCallback(
-                                save_freq=replay_freq,
-                                save_path=path_join(WORKER_DATABASE_DIR, new_model_path, 'replays'),
-                                name_prefix=f'model{run_id}',
-                                replay_env=LuxEnvironment(
-                                                configs=configs,
-                                                learning_agent=player_replay,
-                                                opponent_agent=opponent_replay
-                                ),
-                                replay_num_episodes=replay_num
-                            )
-    )
+    if replay_freq:
+        callbacks.append(
+            SaveReplayAndModelCallback(
+                                    save_freq=replay_freq,
+                                    save_path=path_join(database, new_model_path, 'replays'),
+                                    name_prefix=f'model{run_id}',
+                                    replay_env=LuxEnvironment(
+                                                    configs=configs,
+                                                    learning_agent=player_replay,
+                                                    opponent_agent=opponent_replay
+                                    ),
+                                    replay_num_episodes=replay_num
+                                )
+        )
 
     # Training model
     print(f"Training model {run_id} in {stage_name}...")
@@ -127,11 +129,11 @@ def train(
     train_history.append({'step_count':step_count, 'train_params':train_params, 'opponent':opp_info, 'date_time':last_train})
 
     info = {'run_id':run_id, 'last_train':last_train, 'parents':parents, 'train_params':train_params, 'train_history':train_history}
-    with open(path_join(WORKER_DATABASE_DIR, new_model_path, "info.json"), 'w') as f:
+    with open(path_join(database, new_model_path, "info.json"), 'w') as f:
         f.write(str(info))
 
     # Save model zip file
-    model.save(path_join(WORKER_DATABASE_DIR, new_model_path, "model.zip"))
+    model.save(path_join(database, new_model_path, "model.zip"))
 
     print(f"Model files saved at {new_model_path}")
 
