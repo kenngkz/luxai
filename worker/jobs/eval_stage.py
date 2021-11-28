@@ -20,7 +20,7 @@ class ModelScore:
     def __le__(self, other):
         return self.score <= other.score
 
-def eval_stage(model_path, eval_results, n_select, n_benchmarks):
+def eval_stage(model_path, eval_results, n_select, n_benchmarks, database=None):
     '''
     Return the top few models ids and a list of benchmark models ids from eval results.
     '''

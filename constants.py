@@ -6,6 +6,7 @@ Master Constants
 PROJECT_DIR = "C:/Users/lenovo/Desktop/Coding/LuxAI/collab_project"
 CUSTOM_MODULES_DIR = "C:/Users/lenovo/Desktop/Coding/CustomModules/"
 MASTER_DATABASE_DIR = f"{PROJECT_DIR}/database/"
+MASTER_DATABASE_BACKUP_DIR = f"{PROJECT_DIR}/database_backup"
 MASTER_CACHE_DIR = f"{PROJECT_DIR}/master/"
 WORKER_DATABASE_DIR = f"{PROJECT_DIR}/worker/data/"
 WORKER_CACHE_DIR = f"{PROJECT_DIR}/worker/"
@@ -27,6 +28,7 @@ API_PORT = 5001
 N_SELECT = 8  # number of best models to select
 N_BENCHMARKS = 20  # number of benchmark models to select
 ID_RANGE = 99999
+N_REPLAYS = 3
 DEFAULT_PARAM_TEMPLATE = [
     {
         'model_path':None,

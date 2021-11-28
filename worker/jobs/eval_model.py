@@ -18,6 +18,7 @@ def eval_model(
     replay_dir="eval_replays/",
     replay_prefix="replay",
     save_replays=False,
+    database=WORKER_DATABASE_DIR,
 ):
     '''
     Evaluate a model by running games against a set of opponents and returns the games results.
@@ -31,12 +32,12 @@ def eval_model(
     configs = LuxMatchConfigs_Default
 
     # Initialize player
-    with open(path_join(WORKER_DATABASE_DIR, model_path, 'info.json'), 'r') as f:
+    with open(path_join(database, model_path, 'info.json'), 'r') as f:
         model_info = eval(f.read())
     policy = model_info['train_params']['policy']
     policy_obj = import_module(f"worker.models.{policy}").AgentPolicy
     player = policy_obj(mode='train')
-    model=PPO.load(path_join(WORKER_DATABASE_DIR, model_path, "model.zip"))
+    model=PPO.load(path_join(database, model_path, "model.zip"))
 
     print(f"Evaluation for model {model_info['run_id']} against {len(opp_paths)} opponents...")
 
@@ -45,13 +46,13 @@ def eval_model(
     results = {}
     for index, opp_path in enumerate(opp_paths):
         # Initialize opponent
-        assert os.path.exists(path_join(WORKER_DATABASE_DIR, opp_path, 'info.json')), f"File not found: {path_join(opp_path, 'info.json')}"
-        with open(path_join(WORKER_DATABASE_DIR, opp_path, 'info.json'), 'r') as f:
+        assert os.path.exists(path_join(database, opp_path, 'info.json')), f"File not found: {path_join(opp_path, 'info.json')}"
+        with open(path_join(database, opp_path, 'info.json'), 'r') as f:
             opp_info = eval(f.read())
         opp_id = opp_info['run_id']
         opp_policy = opp_info['train_params']['policy']
         opp_policy_obj = import_module('worker.models.' + opp_policy).AgentPolicy
-        opponent = opp_policy_obj(mode='inference', model=PPO.load(path_join(WORKER_DATABASE_DIR, opp_path,'model.zip')))
+        opponent = opp_policy_obj(mode='inference', model=PPO.load(path_join(database, opp_path,'model.zip')))
 
         match_wins = []
         opp_performance_summary = {}
@@ -60,7 +61,7 @@ def eval_model(
             configs['seed'] = seeds[n]
             if save_replays:
                 replay_name = f'{replay_prefix}_{opp_id}_{n}'
-                env = LuxEnvironment(configs, player, opponent, replay_folder=path_join(WORKER_DATABASE_DIR, model_path, replay_dir), replay_prefix=replay_name)
+                env = LuxEnvironment(configs, player, opponent, replay_folder=path_join(database, model_path, replay_dir), replay_prefix=replay_name)
             else:
                 env = LuxEnvironment(configs, player, opponent)
             obs = env.reset()
@@ -98,18 +99,19 @@ def random_result(
     replay_dir="eval_replays/",
     replay_prefix="replay",
     save_replays=False,
+    database=WORKER_DATABASE_DIR,
 ):
     '''
     Generate random wins/losses for one eval_model.
     '''
-    with open(path_join(WORKER_DATABASE_DIR, model_path, 'info.json'), 'r') as f:
+    with open(path_join(database, model_path, 'info.json'), 'r') as f:
         model_info = eval(f.read())
     n_opps = len(opp_paths)
     results = {}
     for index, opp_path in enumerate(opp_paths):
         # Initialize opponent
-        assert os.path.exists(path_join(WORKER_DATABASE_DIR, opp_path, 'info.json')), f"File not found: {path_join(opp_path, 'info.json')}"
-        with open(path_join(WORKER_DATABASE_DIR, opp_path, 'info.json'), 'r') as f:
+        assert os.path.exists(path_join(database, opp_path, 'info.json')), f"File not found: {path_join(opp_path, 'info.json')}"
+        with open(path_join(database, opp_path, 'info.json'), 'r') as f:
             opp_info = eval(f.read())
         opp_id = opp_info['run_id']
 
