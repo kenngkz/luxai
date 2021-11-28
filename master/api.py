@@ -6,7 +6,7 @@ import time
 from master.api_func.req_para import get_para, eval_args
 from master.api_func.job_complete import manage_completion
 from master.api_func.job_assign import assign
-from master.api_func.upload import upload, upload2
+from master.api_func.upload import upload
 from base_utils import path_join
 from constants import POOL_DIR, MASTER_DATABASE_DIR, N_SELECT, N_BENCHMARKS, DEFAULT_PARAM_TEMPLATE
 
@@ -53,41 +53,6 @@ def download_file(file_path):
 
 @app.route('/upload', methods=["GET", "POST"])
 def upload_file():
-    '''
-    Receive files uploaded from a client.
-    '''
-    p_criteria = {'req':[], 'opt':{'path':'./'}}
-    subfolder_path = get_para(request.args, p_criteria)['path']  # subfolder to save the uploaded file.
-    if subfolder_path[-1] != '/':
-        subfolder_path += '/'
-
-    if request.method == 'POST':
-        # check if the post request has the file part
-        if 'file' not in request.files:
-            flash('No file part')
-            return redirect(request.url)
-        file = request.files['file']
-        # If the user does not select a file, the browser submits an
-        # empty file without a filename.
-        if file.filename == '':
-            flash('No selected file')
-            return redirect(request.url)
-        if file:
-            filename = secure_filename(file.filename)
-            file.save(path_join(app.config['UPLOAD_FOLDER'], subfolder_path+filename))  # TODO: check if subfolder is needed?
-            return redirect(url_for('download_file', name=filename))
-    return '''
-    <!doctype html>
-    <title>Upload new File</title>
-    <h1>Upload new File</h1>
-    <form method=post enctype=multipart/form-data>
-      <input type=file name=file>
-      <input type=submit value=Upload>
-    </form>
-    '''
-
-@app.route('/upload2', methods=["GET", "POST"])
-def upload_file2():
     '''
     Receive files uploaded from a client (version2).
     '''
