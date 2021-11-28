@@ -6,6 +6,7 @@ from base_utils import path_join
 from constants import (
     POOL_DIR, 
     MASTER_DATABASE_DIR, 
+    MASTER_DATABASE_BACKUP_DIR,
     STAGETREE_FILE, 
     ID_RANGE, 
     DEFAULT_PARAM_TEMPLATE, 
@@ -79,16 +80,18 @@ def edit_stage_benchmarks():
     stage_manager.update_stage(stage, {"benchmark_models":new_benchmarks})
     stage_manager.save()
 
-def clear_eval_replays(direc=MASTER_DATABASE_DIR):
+def clear_replays(direc=MASTER_DATABASE_DIR):
     stages = [dir_name for dir_name in os.listdir(direc) if os.path.isdir(path_join(direc, dir_name))]
     stage_paths = [path_join(direc, stage_name) for stage_name in stages]
     for stage, stage_path in zip(stages, stage_paths):
-        model_ids = [dir_name for dir_name in os.listdir(direc) if os.path.isdir(stage_path)]
+        model_ids = [dir_name for dir_name in os.listdir(stage_path) if os.path.isdir(path_join(stage_path, dir_name))]
         model_ids = [dir_name for dir_name in model_ids if not "tensorboard" in dir_name]
         for model_id in model_ids:
-            eval_replay_dir = path_join(stage, model_id, "eval_replays")
-            if os.path.exists(eval_replay_dir):
-                shutil.rmtree(eval_replay_dir)
+            replay_dir_names = ["eval_replay", "eval_replays", "replays", "replay"]
+            for dirname in replay_dir_names:
+                replay_dir = path_join(direc, stage, model_id, dirname)
+                if os.path.exists(replay_dir):
+                    shutil.rmtree(replay_dir)
 
 def connect_master(req_type, url, wait_time=3, **kwargs):
     for i in range(20):
@@ -102,3 +105,10 @@ def connect_master(req_type, url, wait_time=3, **kwargs):
             print(f"Error connecting to master. Retrying in {wait_time}s...")
             time.sleep(wait_time)
     raise Exception(f"Unable to connect to master. req_type: {req_type}, url: {url}")
+
+def reset_master_data():
+    if os.path.exists(MASTER_DATABASE_BACKUP_DIR):
+        if os.path.exists(MASTER_DATABASE_DIR):
+            shutil.rmtree(MASTER_DATABASE_DIR)
+        shutil.copytree(MASTER_DATABASE_BACKUP_DIR, MASTER_DATABASE_DIR)
+    gen_stage_tree_file()
