@@ -1,16 +1,17 @@
 '''
 Master Constants
 '''
+USER = "kenng"
 
 # Directories
-PROJECT_DIR = "C:/Users/lenovo/Desktop/Coding/LuxAI/collab_project"
-CUSTOM_MODULES_DIR = "C:/Users/lenovo/Desktop/Coding/CustomModules/"
+PROJECT_DIR = f"C:/Users/{USER}/Desktop/Coding/LuxAI/collab_project"
+CUSTOM_MODULES_DIR = f"C:/Users/{USER}/Desktop/Coding/CustomModules/"
 MASTER_DATABASE_DIR = f"{PROJECT_DIR}/database/"
 MASTER_DATABASE_BACKUP_DIR = f"{PROJECT_DIR}/database_backup"
 MASTER_CACHE_DIR = f"{PROJECT_DIR}/master/"
 WORKER_DATABASE_DIR = f"{PROJECT_DIR}/worker/data/"
 WORKER_CACHE_DIR = f"{PROJECT_DIR}/worker/"
-POOL_DIR = "C:/Users/lenovo/Desktop/Coding/LuxAI/rl/modelcp/pool"
+POOL_DIR = f"C:/Users/{USER}/Desktop/Coding/LuxAI/rl/modelcp/pool"
 
 # File Names
 STAGETREE_FILE = "stage_data.txt"
@@ -91,6 +92,49 @@ DEFAULT_PARAM_TEMPLATE = [
         'model_policy':'agent3',
         'step_count':100000,
         'learning_rate':0.001,
+        'gamma':0.995,
+        'gae_lambda':0.95,
+    },
+    {
+        'model_path':None,
+        'model_policy':'agent3',
+        'step_count':100000,
+        'learning_rate':0.0004,
+        'gamma':0.995,
+        'gae_lambda':0.95,
+    },
+    {
+        'model_path':None,
+        'model_policy':'agent3',
+        'step_count':100000,
+        'learning_rate':0.0001,
+        'gamma':0.995,
+        'gae_lambda':0.95,
+    }
+]
+
+SECOND_DEF_TEMPLATE = [
+    {
+        'model_path':None,
+        'model_policy':'agent1',
+        'step_count':100000,
+        'learning_rate':0.0004,
+        'gamma':0.995,
+        'gae_lambda':0.95,
+    },
+    {
+        'model_path':None,
+        'model_policy':'agent1',
+        'step_count':100000,
+        'learning_rate':0.0001,
+        'gamma':0.995,
+        'gae_lambda':0.95,
+    },
+    {
+        'model_path':None,
+        'model_policy':'agent2',
+        'step_count':100000,
+        'learning_rate':0.0001,
         'gamma':0.995,
         'gae_lambda':0.95,
     },

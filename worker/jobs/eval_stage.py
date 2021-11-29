@@ -1,5 +1,6 @@
 from sys import path
-path.append("C:\\Users\\lenovo\\Desktop\\Coding\\CustomModules")  # allows custom_modules to be imported
+from constants import CUSTOM_MODULES_DIR
+path.append(CUSTOM_MODULES_DIR)  # allows custom_modules to be imported
 
 from data_structures.quickselect import select_k
 from base_utils import path_join

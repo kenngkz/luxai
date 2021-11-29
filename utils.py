@@ -112,3 +112,12 @@ def reset_master_data():
             shutil.rmtree(MASTER_DATABASE_DIR)
         shutil.copytree(MASTER_DATABASE_BACKUP_DIR, MASTER_DATABASE_DIR)
     gen_stage_tree_file()
+
+def copy_database(old_database, new_database=MASTER_DATABASE_DIR, del_replays=True):
+    assert os.path.exists(old_database), f"Path does not exist: {old_database}"
+    assert not os.path.exists(new_database), f"New location already exists: {new_database}"
+
+    if del_replays:
+        clear_replays(old_database)
+    shutil.copytree(old_database, new_database)
+    gen_stage_tree_file(new_database)

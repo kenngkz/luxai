@@ -32,7 +32,7 @@ def train(
 
     # Set new model save folder
     old_stage = os.path.dirname(model_path)
-    stage_name = f"{stage_prefix}_{int(old_stage[-1])+1}"
+    stage_name = f"{stage_prefix}_{int(old_stage.split('_')[-1])+1}"
     new_model_path = path_join(stage_name, run_id)
     if not os.path.exists(path_join(database, new_model_path)):
         os.makedirs(path_join(database, new_model_path))

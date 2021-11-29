@@ -115,9 +115,9 @@ def get_job(url_prefix, database):
     Gets job assignment from master and downloads all required files in order to perform job.
     '''
     response = connect_master("GET", f"{url_prefix}/job/request")
-    if response == None:
-        return None
     job = eval(response.text)
+    if job == None:
+        return None
     print("-"*100)
     job_print = {"type": job["type"], "args":{key:val for key, val in job["args"].items() if key != "eval_results"}, "info":job["info"]}
     print(f"Job Started: {job_print}")
