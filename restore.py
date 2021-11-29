@@ -15,6 +15,6 @@ if __name__ == "__main__":
 
     reset_master_data()
     reset_worker_data()
-    reset_jobs(path_join(MASTER_DATABASE_DIR, stage), step_count=100000, param_template=SECOND_DEF_TEMPLATE)
+    reset_jobs(path_join(MASTER_DATABASE_DIR, stage), step_count=100000, param_template=SECOND_DEF_TEMPLATE, random_seeds=False)
 
     print("Restore complete.")

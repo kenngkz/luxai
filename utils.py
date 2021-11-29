@@ -62,9 +62,9 @@ def clear_jobs():
     job_manager = JobManager()
     job_manager.clear_queue()
 
-def reset_jobs(stage_path, n_seed_models=10, stage_prefix="stage", param_template=DEFAULT_PARAM_TEMPLATE, step_count=100000):
+def reset_jobs(stage_path, n_seed_models=10, stage_prefix="stage", param_template=DEFAULT_PARAM_TEMPLATE, step_count=100000, random_seeds=True):
     clear_jobs()
-    gen_train_params(stage_path, n_seed_models, stage_prefix, param_template, step_count)
+    gen_train_params(stage_path, n_seed_models, stage_prefix, param_template, step_count, random_seeds)
 
 def reset_worker_data():
     if os.path.exists(WORKER_DATABASE_DIR):
@@ -104,6 +104,16 @@ def connect_master(req_type, url, wait_time=3, **kwargs):
         except requests.exceptions.ConnectionError:
             print(f"Error connecting to master. Retrying in {wait_time}s...")
             time.sleep(wait_time)
+    for i in range(20):
+        try:
+            if req_type == "GET":
+                response = requests.get(url, **kwargs)
+            elif req_type == "POST":
+                response = requests.post(url, **kwargs)
+            return response
+        except requests.exceptions.ConnectionError:
+            print(f"Error connecting to master. Retrying in {wait_time}s...")
+            time.sleep(30)
     raise Exception(f"Unable to connect to master. req_type: {req_type}, url: {url}")
 
 def reset_master_data():
