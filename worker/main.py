@@ -60,6 +60,17 @@ def run_job(master_host, master_port, max_jobs, share=False, param_template=DEFA
                     response = connect_master("POST", f"{url_prefix}/upload", files={"file":file}, params={"path":path_join(new_model_path, filename)})
                     if "Upload complete." not in response.text:
                         raise Exception(f"Upload failed. File: {path_join(local_new_model_path, filename)}")
+                # upload tensorboard logs
+                tensorboard_log_folder = "tensorboard_log"
+                logs = os.listdir(path_join(local_new_model_path, tensorboard_log_folder))
+                latest_log = sorted(logs, key=lambda x: int(x.split("_")[-1]), reverse=True)[0]
+                log_files = os.listdir(path_join(local_new_model_path, tensorboard_log_folder, latest_log))
+                for logfile in log_files:
+                    with open(path_join(local_new_model_path, tensorboard_log_folder, latest_log, logfile), 'rb') as f:
+                        file = f.read()
+                    response = connect_master("POST", f"{url_prefix}/upload", files={"file":file}, params={"path":path_join(new_model_path, tensorboard_log_folder, latest_log, logfile)})
+                    if "Upload complete." not in response.text:
+                        raise Exception(f"Upload failed. File: {path_join(local_new_model_path, filename)}")
                 print(f"Done.")
         
         elif job["type"] == "eval_model":
