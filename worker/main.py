@@ -14,7 +14,7 @@ import time
 master_host = "192.168.0.7"
 master_port = 5001
 
-job_funcs = {"train":train, "eval_model":random_result, "eval_stage":eval_stage, "replay":replay}
+job_funcs = {"train":train, "eval_model":eval_model, "eval_stage":eval_stage, "replay":replay}
 
 def run_job(master_host, master_port, max_jobs, share=False, param_template=DEFAULT_PARAM_TEMPLATE, n_select=8, n_benchmarks=20):
     if share:
@@ -58,6 +58,17 @@ def run_job(master_host, master_port, max_jobs, share=False, param_template=DEFA
                     with open(path_join(local_new_model_path, filename), 'rb') as f:
                         file = f.read()
                     response = connect_master("POST", f"{url_prefix}/upload", files={"file":file}, params={"path":path_join(new_model_path, filename)})
+                    if "Upload complete." not in response.text:
+                        raise Exception(f"Upload failed. File: {path_join(local_new_model_path, filename)}")
+                # upload tensorboard logs
+                tensorboard_log_folder = "tensorboard_log"
+                logs = os.listdir(path_join(local_new_model_path, tensorboard_log_folder))
+                latest_log = sorted(logs, key=lambda x: int(x.split("_")[-1]), reverse=True)[0]
+                log_files = os.listdir(path_join(local_new_model_path, tensorboard_log_folder, latest_log))
+                for logfile in log_files:
+                    with open(path_join(local_new_model_path, tensorboard_log_folder, latest_log, logfile), 'rb') as f:
+                        file = f.read()
+                    response = connect_master("POST", f"{url_prefix}/upload", files={"file":file}, params={"path":path_join(new_model_path, tensorboard_log_folder, latest_log, logfile)})
                     if "Upload complete." not in response.text:
                         raise Exception(f"Upload failed. File: {path_join(local_new_model_path, filename)}")
                 print(f"Done.")
@@ -115,9 +126,9 @@ def get_job(url_prefix, database):
     Gets job assignment from master and downloads all required files in order to perform job.
     '''
     response = connect_master("GET", f"{url_prefix}/job/request")
-    if response == None:
-        return None
     job = eval(response.text)
+    if job == None:
+        return None
     print("-"*100)
     job_print = {"type": job["type"], "args":{key:val for key, val in job["args"].items() if key != "eval_results"}, "info":job["info"]}
     print(f"Job Started: {job_print}")

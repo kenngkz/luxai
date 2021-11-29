@@ -56,7 +56,7 @@ def manage_completion(completed_job, results=None, param_template=DEFAULT_PARAM_
             job_manager.add_queue("replay", {"n_replays":n_replays, "model_path":model_path})  # can add opp_path in the future
         # generate new train params for the new stage
         model_ids = stage_info["best_models"]  # old stage model ids
-        new_stage = stage[:-1] + str(int(stage[-1]) + 1)
+        new_stage = stage[:-1] + str(int(stage.split('_')[-1]) + 1)
         new_stage_params = []
         available_model_ids = list(range(ID_RANGE))
         for model_id in model_ids:

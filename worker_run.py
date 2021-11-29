@@ -35,26 +35,26 @@ if __name__ == "__main__":
     n_benchmarks = N_BENCHMARKS
 
     # Reset master and worker data and job queue
-    short_param_template = [
-        {
-            'model_path':None,
-            'model_policy':'agent1',
-            'step_count':1000,
-            'learning_rate':0.001,
-            'gamma':0.995,
-            'gae_lambda':0.95,
-        },
-        {
-            'model_path':None,
-            'model_policy':'agent1',
-            'step_count':1000,
-            'learning_rate':0.001,
-            'gamma':0.995,
-            'gae_lambda':0.95,
-        }
-    ]
-    reset_master_data()
-    reset_jobs("stage_1", n_seed_models=4, param_template=short_param_template, step_count=1000)
+    # short_param_template = [
+    #     {
+    #         'model_path':None,
+    #         'model_policy':'agent1',
+    #         'step_count':1000,
+    #         'learning_rate':0.001,
+    #         'gamma':0.995,
+    #         'gae_lambda':0.95,
+    #     },
+    #     {
+    #         'model_path':None,
+    #         'model_policy':'agent1',
+    #         'step_count':1000,
+    #         'learning_rate':0.001,
+    #         'gamma':0.995,
+    #         'gae_lambda':0.95,
+    #     }
+    # ]
+    # reset_master_data()
+    # reset_jobs("stage_1", n_seed_models=4, param_template=short_param_template, step_count=1000)
 
     # run worker
     args = get_terminal_args()
