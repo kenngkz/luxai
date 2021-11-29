@@ -14,7 +14,7 @@ import time
 master_host = "192.168.0.7"
 master_port = 5001
 
-job_funcs = {"train":train, "eval_model":random_result, "eval_stage":eval_stage, "replay":replay}
+job_funcs = {"train":train, "eval_model":eval_model, "eval_stage":eval_stage, "replay":replay}
 
 def run_job(master_host, master_port, max_jobs, share=False, param_template=DEFAULT_PARAM_TEMPLATE, n_select=8, n_benchmarks=20):
     if share:

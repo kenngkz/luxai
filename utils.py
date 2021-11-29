@@ -51,7 +51,7 @@ def gen_train_params(stage_path, n_seed_models=10, stage_prefix="stage", param_t
             template["step_count"] = step_count
             new_stage_params.append(template)
     # add new stage
-    new_stage = f"{stage_prefix}_{int(stage[-1]) + 1}"
+    new_stage = f"{stage_prefix}_{int(stage.split('_')[-1]) + 1}"
     stage_manager.add_stage(new_stage, stage, new_stage_params)
     # add new train jobs to queue
     for params in new_stage_params:
@@ -116,8 +116,10 @@ def reset_master_data():
 def copy_database(old_database, new_database=MASTER_DATABASE_DIR, del_replays=True):
     assert os.path.exists(old_database), f"Path does not exist: {old_database}"
     assert not os.path.exists(new_database), f"New location already exists: {new_database}"
-
+    
+    print(f"Copying {old_database} to {new_database}...", end=" ")
     if del_replays:
         clear_replays(old_database)
     shutil.copytree(old_database, new_database)
     gen_stage_tree_file(new_database)
+    print("Done.")
