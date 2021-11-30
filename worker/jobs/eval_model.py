@@ -13,7 +13,7 @@ def eval_model(
     model_path,
     opp_paths:list,
     n_games=5,
-    max_steps=1000,
+    max_steps=5000,
     seeds=None,
     replay_dir="eval_replays/",
     replay_prefix="replay",
