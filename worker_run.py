@@ -4,7 +4,7 @@ path.insert(1, PROJECT_DIR)
 
 from worker.main import run_job
 from utils import reset_worker_data, reset_master_data, reset_jobs
-from constants import DEFAULT_PARAM_TEMPLATE, N_BENCHMARKS, N_SELECT, SECOND_DEF_TEMPLATE
+from constants import DEFAULT_PARAM_TEMPLATE, N_BENCHMARKS, N_SELECT, SECOND_DEF_TEMPLATE, THIRD_N_SELECT, THIRD_TEMPLATE, THIRD_N_BENCHMARKS
 
 import argparse
 
@@ -30,9 +30,9 @@ def run_worker(args, template, n_select, n_benchmarks):
 
 if __name__ == "__main__":
     # Variables to edit
-    template = SECOND_DEF_TEMPLATE
-    n_select = 6
-    n_benchmarks = N_BENCHMARKS
+    template = THIRD_TEMPLATE
+    n_select = THIRD_N_SELECT
+    n_benchmarks = THIRD_N_BENCHMARKS
 
     # Reset master and worker data and job queue
     # short_param_template = [

@@ -156,14 +156,34 @@ SECOND_DEF_TEMPLATE = [
     }
 ]
 
+THIRD_N_SELECT = 6
+THIRD_N_BENCHMARKS = 12
 THIRD_TEMPLATE = [
     {
         'model_path':None,
         'model_policy':'agent1',
         'opp_path':'self',
-        'step_count':100000,
-        'learning_rate':0.0004,
+        'step_count':200000,
+        'learning_rate':0.0001,
         'gamma':0.995,
         'gae_lambda':0.95,
     },
+    {
+        'model_path':None,
+        'model_policy':'agent2',
+        'opp_path':'self',
+        'step_count':200000,
+        'learning_rate':0.0001,
+        'gamma':0.995,
+        'gae_lambda':0.95,
+    },
+    {
+        'model_path':None,
+        'model_policy':'agent3',
+        'opp_path':'self',
+        'step_count':200000,
+        'learning_rate':0.0001,
+        'gamma':0.995,
+        'gae_lambda':0.95,
+    }
 ]

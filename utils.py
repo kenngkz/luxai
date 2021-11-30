@@ -104,6 +104,9 @@ def connect_master(req_type, url, wait_time=5, **kwargs):
         except requests.exceptions.ConnectionError:
             print(f"Error connecting to master. Retrying in {wait_time}s...")
             time.sleep(wait_time)
+        except requests.exceptions.ChunkedEncodingError:
+            print(f"Stream interupted. Retrying in {wait_time}s...")
+            time.sleep(wait_time)
     for i in range(20):
         try:
             if req_type == "GET":
