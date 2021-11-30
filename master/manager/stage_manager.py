@@ -25,6 +25,18 @@ class StageManager:
     
     def add_stage(self, stage_name, parent, stage_params):
         self.tree.add_new_stage(stage_name, parent, stage_params)
+        with open(path_join(MASTER_DATABASE_DIR, parent, "train.params.txt", "w")) as f:
+            f.write(stage_params)
+
+    def update_best_bench(self, stage, best_models, benchmark_models):
+        stage_info = self.tree.get_stage_info(stage)
+        stage_info["best_models"] = best_models
+        stage_info["benchmark_models"] = benchmark_models
+        self.update_stage(stage, stage_info)
+        with open(path_join(MASTER_DATABASE_DIR, stage, "best_models.txt", "w")) as f:
+            f.write(best_models)
+        with open(path_join(MASTER_DATABASE_DIR, stage, "benchmark_models.txt", "w")) as f:
+            f.write(benchmark_models)
 
     def update_stage(self, stage_name, new_stage_info:dict):
         stage_node = self.tree.get_stage(stage_name)
@@ -39,6 +51,9 @@ class StageManager:
             return None
         
     def get_benchmarks(self, stage_name):
+        '''
+        Get benchmarks from the parent stage.
+        '''
         prev_stage = self.tree.get_parent(stage_name).name
         if prev_stage == None:
             raise Exception(f"Parent not found for {stage_name}")

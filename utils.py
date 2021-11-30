@@ -93,7 +93,7 @@ def clear_replays(direc=MASTER_DATABASE_DIR):
                 if os.path.exists(replay_dir):
                     shutil.rmtree(replay_dir)
 
-def connect_master(req_type, url, wait_time=3, **kwargs):
+def connect_master(req_type, url, wait_time=5, **kwargs):
     for i in range(20):
         try:
             if req_type == "GET":

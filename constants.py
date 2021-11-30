@@ -155,3 +155,15 @@ SECOND_DEF_TEMPLATE = [
         'gae_lambda':0.95,
     }
 ]
+
+THIRD_TEMPLATE = [
+    {
+        'model_path':None,
+        'model_policy':'agent1',
+        'opp_path':'self',
+        'step_count':100000,
+        'learning_rate':0.0004,
+        'gamma':0.995,
+        'gae_lambda':0.95,
+    },
+]

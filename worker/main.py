@@ -24,22 +24,17 @@ def run_job(master_host, master_port, max_jobs, share=False, param_template=DEFA
     for i in range(max_jobs):
         url_prefix = f"http://{master_host}:{master_port}"
         # get the job to do
-        try:
-            job = read_ongoing()
-            if job is None:  # get request from master
-                job = get_job(url_prefix, database)
-                if job == None:
-                    print(f"No job available. Retrying in 3s...")
-                    time.sleep(3)
-                    continue
-            else:
-                print("-" * 100)
-                job_print = {"type": job["type"], "args":{key:val for key, val in job["args"].items() if key != "eval_results"}, "info":job["info"]}
-                print(f"Job Started: {job_print}")
-        except requests.exceptions.ConnectionError:
-            print(f"Error connecting to master. Retrying in 3s...")
-            time.sleep(3)
-            continue
+        job = read_ongoing()
+        if job is None:  # get request from master
+            job = get_job(url_prefix, database)
+            if job == None:
+                print(f"No job available. Retrying in 10s...")
+                time.sleep(10)
+                continue
+        else:
+            print("-" * 100)
+            job_print = {"type": job["type"], "args":{key:val for key, val in job["args"].items() if key != "eval_results"}, "info":job["info"]}
+            print(f"Job Started: {job_print}")
         # get function to run
         func = job_funcs[job["type"]]
         report = func(**job["args"], database=database)
@@ -139,5 +134,6 @@ def get_job(url_prefix, database):
         for model_path in job["args"]["opp_paths"]:
             check_model_file(model_path, url_prefix, database=database)
     if "opp_path" in job["args"]:
-        check_model_file(job["args"]["opp_path"], url_prefix, database=database)
+        if job["args"]["opp_path"] != "self":
+            check_model_file(job["args"]["opp_path"], url_prefix, database=database)
     return job

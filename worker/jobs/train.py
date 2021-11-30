@@ -52,10 +52,15 @@ def train(
 
     # Initialize opponent
     if opp_path:
-        with open(path_join(database, opp_path, "info.json"), 'r') as f:
-            opp_info = eval(f.read())
-        opp_policy = opp_info["policy"]
-        opp_model = PPO.load(path_join(database, opp_path, "model.zip"))
+        if opp_path == "self":
+            opp_info = model_info
+            opp_policy = model_policy
+            opp_model = PPO.load(path_join(database, model_path, "model.zip"))
+        else:
+            with open(path_join(database, opp_path, "info.json"), 'r') as f:
+                opp_info = eval(f.read())
+            opp_policy = opp_info["policy"]
+            opp_model = PPO.load(path_join(database, opp_path, "model.zip"))
     else:
         opp_info = None
         opp_policy = 'agent_blank'
