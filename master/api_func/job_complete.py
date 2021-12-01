@@ -30,7 +30,6 @@ def manage_completion(completed_job, results=None, param_template=DEFAULT_PARAM_
         stage_manager.update_stage(stage, stage_info)
         new_model_path = f'{stage}/{completed_job["args"]["run_id"]}'
         benchmark_models = stage_manager.get_benchmarks(stage)
-        stage_manager.save()
         new_job = job_manager.add_queue("eval_model", {"model_path":new_model_path, "opp_paths":benchmark_models, "save_replays":False})
         job_print = {"type": new_job["type"], "args":{key:val for key, val in new_job["args"].items() if key != "eval_results"}, "info":completed_job["info"]}
         print(f"Job Queued: {job_print}")
@@ -47,7 +46,6 @@ def manage_completion(completed_job, results=None, param_template=DEFAULT_PARAM_
             new_job = job_manager.add_queue("eval_stage", {"model_path":model_path, "eval_results":stage_info["eval_results"], "n_select":n_select, "n_benchmarks":n_benchmarks}, {"stage_name":stage})
             job_print = {"type": new_job["type"], "args":{key:val for key, val in new_job["args"].items() if key != "eval_results"}, "info":completed_job["info"]}
             print(f"Job Queued: {job_print}")
-        stage_manager.save()
     # If job_type is eval_stage, assign new train jobs
     elif completed_job["type"] == "eval_stage":
         stage_manager.update_best_bench(stage, results["best_models"], results["benchmark_models"])
@@ -56,10 +54,12 @@ def manage_completion(completed_job, results=None, param_template=DEFAULT_PARAM_
             model_path = path_join(stage, model_id)
             job_manager.add_queue("replay", {"n_replays":n_replays, "model_path":model_path})  # can add opp_path in the future
         # generate new train params for the new stage
-        model_ids = stage_info["best_models"]  # old stage model ids
-        new_stage = '_'.join(stage.split('_')[:-1]) + str(int(stage.split('_')[-1]) + 1)
+        model_ids = results["best_models"]  # old stage model ids
+        print(f"Best models in {stage}: {model_ids}")
+        new_stage = '_'.join(stage.split('_')[:-1]) + '_' + str(int(stage.split('_')[-1]) + 1)
         new_stage_params = []
         available_model_ids = list(range(ID_RANGE))
+        print(f"New stage: {new_stage}. Generating stage params...", end=" ")
         for model_id in model_ids:
             templates = [{arg_name:arg_val for arg_name, arg_val in template.items()} for template in param_template]
             for template in templates:
@@ -68,6 +68,7 @@ def manage_completion(completed_job, results=None, param_template=DEFAULT_PARAM_
                 template["model_path"] = path_join(stage, model_id)
                 template["run_id"] = str(new_run_id)
                 new_stage_params.append(template)
+        print("Done.")
         # add new stage
         stage_manager.add_stage(new_stage, stage, new_stage_params)
         # add new train jobs to queue
@@ -79,3 +80,4 @@ def manage_completion(completed_job, results=None, param_template=DEFAULT_PARAM_
             print(f"Job Queued: {job_print}")
     else: # if job_type is replay, pass
         pass
+    stage_manager.save()

@@ -28,7 +28,7 @@ API_PORT = 5001
 # Defualt Training Parameters
 N_SELECT = 8  # number of best models to select
 N_BENCHMARKS = 20  # number of benchmark models to select
-ID_RANGE = 99999
+ID_RANGE = 100000
 N_REPLAYS = 3
 DEFAULT_PARAM_TEMPLATE = [
     {

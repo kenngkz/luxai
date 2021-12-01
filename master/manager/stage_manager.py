@@ -25,7 +25,9 @@ class StageManager:
     
     def add_stage(self, stage_name, parent, stage_params):
         self.tree.add_new_stage(stage_name, parent, stage_params)
-        with open(path_join(MASTER_DATABASE_DIR, parent, "train.params.txt"), "w") as f:
+        if not os.path.exists(path_join(MASTER_DATABASE_DIR, stage_name)):
+            os.mkdir(path_join(MASTER_DATABASE_DIR, stage_name))
+        with open(path_join(MASTER_DATABASE_DIR, stage_name, "train_params.txt"), "w") as f:
             f.write(str(stage_params))
 
     def update_best_bench(self, stage, best_models, benchmark_models):

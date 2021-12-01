@@ -10,7 +10,7 @@ import random
 import os
 import json
 
-def replay(n_replays, model_path, opp_path=None, database=WORKER_DATABASE_DIR, seeds=None, max_steps=5000, player_names=[], autoname=False):
+def replay(n_replays, model_path, opp_path=None, database=WORKER_DATABASE_DIR, seeds=None, max_steps=5000, player_names=[], autoname=True):
     # Set seeds
     if not seeds:
         seeds = [random.randint(0, 10000) for _ in range(n_replays)]
