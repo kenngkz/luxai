@@ -13,6 +13,7 @@ import time
 
 master_host = "192.168.0.7"
 master_port = 5001
+url_prefix = f"http://{master_host}:{master_port}"
 
 job_funcs = {"train":train, "eval_model":eval_model, "eval_stage":eval_stage, "replay":replay}
 
@@ -22,7 +23,6 @@ def run_job(master_host, master_port, max_jobs, share=False, param_template=DEFA
     else:
         database = WORKER_DATABASE_DIR
     for i in range(max_jobs):
-        url_prefix = f"http://{master_host}:{master_port}"
         # get the job to do
         job = read_ongoing()
         if job is None:  # get request from master
@@ -41,10 +41,8 @@ def run_job(master_host, master_port, max_jobs, share=False, param_template=DEFA
 
         completion_url = f"{url_prefix}/job/report"
         if job["type"] == "train":
-            # Report completion of job to master
-            new_model_path = report
-            response = connect_master("POST", completion_url, params={"completed_job":str(job), "results":new_model_path})
             # Upload the new model files
+            new_model_path = report
             if not share:
                 local_new_model_path = path_join(database, new_model_path)
                 print(f"Uploading {new_model_path}...", end=' ')
@@ -67,6 +65,8 @@ def run_job(master_host, master_port, max_jobs, share=False, param_template=DEFA
                     if "Upload complete." not in response.text:
                         raise Exception(f"Upload failed. File: {path_join(local_new_model_path, filename)}")
                 print(f"Done.")
+            # Report completion of job to master
+            response = connect_master("POST", completion_url, params={"completed_job":str(job), "results":new_model_path})
         
         elif job["type"] == "eval_model":
             results = report
@@ -78,7 +78,6 @@ def run_job(master_host, master_port, max_jobs, share=False, param_template=DEFA
         
         else: # replay job completed
             replay_folder = report
-            response = connect_master("POST", completion_url, params={"completed_job":str(job)})
             model_path = job["args"]["model_path"]
             replays = os.listdir(path_join(database, model_path, replay_folder))
             print(f"Uploading {len(replays)} replays for {model_path} in {replay_folder}...", end=' ')
@@ -89,6 +88,7 @@ def run_job(master_host, master_port, max_jobs, share=False, param_template=DEFA
                 if "Upload complete." not in response.text:
                         raise Exception(f"Upload failed. File: {path_join(database, model_path, replay_folder, filename)}")
             print("Done.")
+            response = connect_master("POST", completion_url, params={"completed_job":str(job)})
 
         update_ongoing("")
         job_print = {"type": job["type"], "args":{key:val for key, val in job["args"].items() if key != "eval_results"}, "info":job["info"]}

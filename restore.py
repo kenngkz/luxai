@@ -8,13 +8,13 @@ path.insert(1, PROJECT_DIR)
 
 from base_utils import path_join
 from utils import reset_master_data, reset_worker_data, reset_jobs
-from constants import SECOND_DEF_TEMPLATE, MASTER_DATABASE_DIR
+from constants import SECOND_DEF_TEMPLATE, MASTER_DATABASE_DIR, THIRD_TEMPLATE
 
 if __name__ == "__main__":
-    stage = "stage_11"
+    stage = "stage_12"
 
     reset_master_data()
     reset_worker_data()
-    reset_jobs(path_join(MASTER_DATABASE_DIR, stage), step_count=100000, param_template=SECOND_DEF_TEMPLATE, random_seeds=False)
+    reset_jobs(path_join(MASTER_DATABASE_DIR, stage), step_count=200000, param_template=THIRD_TEMPLATE, random_seeds=False)
 
     print("Restore complete.")
