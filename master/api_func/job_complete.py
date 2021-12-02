@@ -31,7 +31,7 @@ def manage_completion(completed_job, results=None, param_template=DEFAULT_PARAM_
         new_model_path = f'{stage}/{completed_job["args"]["run_id"]}'
         benchmark_models = stage_manager.get_benchmarks(stage)
         new_job = job_manager.add_queue("eval_model", {"model_path":new_model_path, "opp_paths":benchmark_models, "save_replays":False})
-        job_print = {"type": new_job["type"], "args":{key:val for key, val in new_job["args"].items() if key != "eval_results"}, "info":completed_job["info"]}
+        job_print = {"type": new_job["type"], "args":{key:val for key, val in new_job["args"].items() if key != "eval_results"}, "info":new_job["info"]}
         print(f"Job Queued: {job_print}")
     # If job_type is eval, check if stage is complete
     elif completed_job['type'] == 'eval_model':
@@ -44,15 +44,17 @@ def manage_completion(completed_job, results=None, param_template=DEFAULT_PARAM_
         if len(stage_info["eval_results"]) >= len(stage_info["stage_params"]):
             # add a eval_stage job to queue
             new_job = job_manager.add_queue("eval_stage", {"model_path":model_path, "eval_results":stage_info["eval_results"], "n_select":n_select, "n_benchmarks":n_benchmarks}, {"stage_name":stage})
-            job_print = {"type": new_job["type"], "args":{key:val for key, val in new_job["args"].items() if key != "eval_results"}, "info":completed_job["info"]}
+            job_print = {"type": new_job["type"], "args":{key:val for key, val in new_job["args"].items() if key != "eval_results"}, "info":new_job["info"]}
             print(f"Job Queued: {job_print}")
     # If job_type is eval_stage, assign new train jobs
     elif completed_job["type"] == "eval_stage":
         stage_manager.update_best_bench(stage, results["best_models"], results["benchmark_models"])
         # generate replays for the best models
-        for model_id in stage_info["best_models"]:
+        for model_id in results["best_models"]:
             model_path = path_join(stage, model_id)
-            job_manager.add_queue("replay", {"n_replays":n_replays, "model_path":model_path})  # can add opp_path in the future
+            new_job = job_manager.add_queue("replay", {"n_replays":n_replays, "model_path":model_path})  # can add opp_path in the future
+            job_print = {"type": new_job["type"], "args":{key:val for key, val in new_job["args"].items() if key != "eval_results"}, "info":new_job["info"]}
+            print(f"Job Queued: {job_print}")
         # generate new train params for the new stage
         model_ids = results["best_models"]  # old stage model ids
         print(f"Best models in {stage}: {model_ids}")
@@ -76,7 +78,7 @@ def manage_completion(completed_job, results=None, param_template=DEFAULT_PARAM_
         for params in new_stage_params:
             new_job = job_manager.add_queue("train", params)
             new_jobs.append(new_job)
-            job_print = {"type": new_job["type"], "args":{key:val for key, val in new_job["args"].items() if key != "eval_results"}, "info":completed_job["info"]}
+            job_print = {"type": new_job["type"], "args":{key:val for key, val in new_job["args"].items() if key != "eval_results"}, "info":new_job["info"]}
             print(f"Job Queued: {job_print}")
     else: # if job_type is replay, pass
         pass

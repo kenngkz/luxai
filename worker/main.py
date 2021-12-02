@@ -28,8 +28,8 @@ def run_job(master_host, master_port, max_jobs, share=False, param_template=DEFA
         if job is None:  # get request from master
             job = get_job(url_prefix, database)
             if job == None:
-                print(f"No job available. Retrying in 10s...")
-                time.sleep(10)
+                print(f"No job available. Retrying in 30s...")
+                time.sleep(30)
                 continue
         else:
             print("-" * 100)
