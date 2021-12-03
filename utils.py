@@ -101,8 +101,9 @@ def connect_master(req_type, url, wait_time=5, **kwargs):
             elif req_type == "POST":
                 response = requests.post(url, **kwargs)
             return response
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.ConnectionError as e:
             print(f"Error connecting to master. Retrying in {wait_time}s...")
+            print(e)
             time.sleep(wait_time)
         except requests.exceptions.ChunkedEncodingError:
             print(f"Stream interupted. Retrying in {wait_time}s...")

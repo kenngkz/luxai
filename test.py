@@ -15,7 +15,7 @@ import requests
 import shutil
 import random
 
-master_host = "192.168.0.78"
+master_host = "192.168.0.87"
 master_port = 5001
 
 short_param_template = [
@@ -53,39 +53,37 @@ short_param_template = [
 # run_job(master_host, master_port, 22, share=False, param_template=short_param_template, n_select=2, n_benchmarks=4)
 
 # reset_master_data()
-stage = "stage_14"
+stage = "stage_20"
 stage_path = path_join(MASTER_DATABASE_DIR, stage)
 job_manager = JobManager()
-job_manager.clear_queue()
-stage_manager = StageManager(short_param_template)
+# job_manager.clear_queue()
+stage_manager = StageManager(THIRD_TEMPLATE)
 
-with open(path_join(MASTER_DATABASE_DIR, "stage_13", "best_models.txt"), "r") as f:
-    seed_models = eval(f.read())
+# with open(path_join(MASTER_DATABASE_DIR, "stage_13", "best_models.txt"), "r") as f:
+#     seed_models = eval(f.read())
 
 model_ids = [dir_name for dir_name in os.listdir(stage_path) if os.path.isdir(path_join(stage_path, dir_name))]
 model_ids = [model_id for model_id in model_ids if not "tensorboard" in model_id]
+benchmarks = stage_manager.get_benchmarks(stage)
+job_type = "eval_model"
 
-new_stage_params = []
-available_model_ids = list(range(100000))
-for model_id in seed_models:
-    templates = [{arg_name:arg_val for arg_name, arg_val in template.items()} for template in THIRD_TEMPLATE]
-    for template in templates:
-        new_run_id = random.choice(available_model_ids)
-        available_model_ids.remove(new_run_id)
-        template["model_path"] = path_join(stage, model_id)
-        template["run_id"] = str(new_run_id)
-        new_stage_params.append(template)
+# available_model_ids = list(range(100000))
+for model_id in model_ids:
+    model_path = path_join(stage, model_id)
+    job_args = {"model_path":model_path, "opp_paths":benchmarks, "save_replays":False}
+    job_manager.add_queue(job_type, job_args)
+    
 
-stage_manager.add_stage(stage, "stage_13", new_stage_params)
+# stage_manager.add_stage(stage, "stage_13", new_stage_params)
 stage_info = stage_manager.get_stage_info(stage)
 
-with open(path_join(MASTER_DATABASE_DIR, "stage_13", "benchmark_models.txt"), "r") as f:
-    benchmarks = eval(f.read())
+# with open(path_join(MASTER_DATABASE_DIR, "stage_13", "benchmark_models.txt"), "r") as f:
+#     benchmarks = eval(f.read())
 
-old_stage_info = stage_manager.get_stage_info("stage_13")
-old_stage_info["best_models"] = seed_models
-old_stage_info["benchmark_models"] = benchmarks
-stage_manager.update_stage("stage_13", old_stage_info)
+# old_stage_info = stage_manager.get_stage_info("stage_13")
+# old_stage_info["best_models"] = seed_models
+# old_stage_info["benchmark_models"] = benchmarks
+# stage_manager.update_stage("stage_13", old_stage_info)
 
 # print(model_ids)
 # print(stage_info["stage_params"])
@@ -96,11 +94,11 @@ stage_manager.update_stage("stage_13", old_stage_info)
 # job_args = {"model_path":path_join(stage, missing_model), "opp_paths":benchmarks, "save_replays":False}
 # job_manager.add_queue("eval_model", job_args)
 
-for model_id in model_ids:
-    job_type = "eval_model"
-    model_path = path_join(stage, model_id)
-    job_args = {"model_path":model_path, "opp_paths":benchmarks, "save_replays":False}
-    job_manager.add_queue(job_type, job_args)
+# for model_id in model_ids:
+#     job_type = "eval_model"
+#     model_path = path_join(stage, model_id)
+#     job_args = {"model_path":model_path, "opp_paths":benchmarks, "save_replays":False}
+#     job_manager.add_queue(job_type, job_args)
 
 # replacement_stage_params = stage_manager.gen_train_params("stage_11")
 # stage_info["stage_params"] = replacement_stage_params

@@ -156,8 +156,8 @@ SECOND_DEF_TEMPLATE = [
     }
 ]
 
-THIRD_N_SELECT = 6
-THIRD_N_BENCHMARKS = 10
+THIRD_N_SELECT = 3
+THIRD_N_BENCHMARKS = 9
 THIRD_TEMPLATE = [
     {
         'model_path':None,

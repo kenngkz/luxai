@@ -13,7 +13,6 @@ import time
 
 master_host = "192.168.0.7"
 master_port = 5001
-url_prefix = f"http://{master_host}:{master_port}"
 
 job_funcs = {"train":train, "eval_model":eval_model, "eval_stage":eval_stage, "replay":replay}
 
@@ -22,6 +21,7 @@ def run_job(master_host, master_port, max_jobs, share=False, param_template=DEFA
         database = MASTER_DATABASE_DIR
     else:
         database = WORKER_DATABASE_DIR
+    url_prefix = f"http://{master_host}:{master_port}"
     for i in range(max_jobs):
         # get the job to do
         job = read_ongoing()
@@ -77,18 +77,20 @@ def run_job(master_host, master_port, max_jobs, share=False, param_template=DEFA
             response = connect_master("POST", completion_url, params={"completed_job":str(job), "results":str({"best_models":best_models, "benchmark_models":benchmark_models}), "param_template":str(param_template)})
         
         else: # replay job completed
-            replay_folder = report
+            replay_folder, replays = report
             model_path = job["args"]["model_path"]
-            replays = os.listdir(path_join(database, model_path, replay_folder))
             print(f"Uploading {len(replays)} replays for {model_path} in {replay_folder}...", end=' ')
             for filename in replays:
-                with open(path_join(database, model_path, replay_folder, filename), 'rb') as f:
+                with open(path_join(WORKER_DATABASE_DIR, model_path, replay_folder, filename), 'rb') as f:
                     file = f.read()
                 response = connect_master("POST", f"{url_prefix}/upload", files={"file":file}, params={"path":path_join(model_path, replay_folder, filename)})
                 if "Upload complete." not in response.text:
-                        raise Exception(f"Upload failed. File: {path_join(database, model_path, replay_folder, filename)}")
+                    raise Exception(f"Upload failed. File: {path_join(WORKER_DATABASE_DIR, model_path, replay_folder, filename)}")
             print("Done.")
             response = connect_master("POST", completion_url, params={"completed_job":str(job)})
+
+        if response.status_code != 200:
+            raise Exception(f"Error reporting job: {response.text}")
 
         update_ongoing("")
         job_print = {"type": job["type"], "args":{key:val for key, val in job["args"].items() if key != "eval_results"}, "info":job["info"]}

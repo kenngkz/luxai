@@ -10,4 +10,4 @@ path.insert(1, PROJECT_DIR)
 from master import api
 
 if __name__ == "__main__":
-    api.app.run(API_HOST, API_PORT, debug=True)
+    api.app.run(API_HOST, API_PORT)

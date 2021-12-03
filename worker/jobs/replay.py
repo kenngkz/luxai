@@ -32,7 +32,7 @@ def replay(n_replays, model_path, opp_path=None, database=WORKER_DATABASE_DIR, s
     if opp_path:
         with open(path_join(database, opp_path, "info.json"), 'r') as f:
             opp_info = eval(f.read())
-        opp_policy = opp_info["policy"]
+        opp_policy = opp_info["train_params"]["policy"]
         opp_id = opp_info["run_id"]
         opp_model = PPO.load(path_join(database, opp_path, "model.zip"))
     else:
@@ -45,7 +45,7 @@ def replay(n_replays, model_path, opp_path=None, database=WORKER_DATABASE_DIR, s
 
     print(f"Generating {n_replays} replays for model {model_id} vs {opp_id}...")
     replay_folder = f"replays_vs_{opp_id}"
-    replay_folder_path = path_join(database, model_path, replay_folder)
+    replay_folder_path = path_join(WORKER_DATABASE_DIR, model_path, replay_folder)
 
     # Run replay games'
     if os.path.exists(replay_folder_path):
@@ -76,15 +76,17 @@ def replay(n_replays, model_path, opp_path=None, database=WORKER_DATABASE_DIR, s
     # Edit replay names to provided player and opponent names
     if autoname:
         player_names = ["player", "opponent"]
+    if type(player_names) == str:
+        player_names = eval(player_names)
     if len(player_names) > 0:
         assert len(player_names) == 2, "player_names arg must be a list with 2 names. The first name is the player name and the 2nd is the opponent name"
         for filename, team in teams.items():
-            with open(path_join(database, model_path, replay_folder, filename), "r") as f:
+            with open(path_join(WORKER_DATABASE_DIR, model_path, replay_folder, filename), "r") as f:
                 replay_json = json.loads(f.read())
             replay_json["teamDetails"] = {"name": player_names[team[0]], "tournamentID": ""}, {"name": player_names[team[1]], "tournamentID": ""}
-            with open(path_join(database, model_path, replay_folder, filename), "w") as f:
+            with open(path_join(WORKER_DATABASE_DIR, model_path, replay_folder, filename), "w") as f:
                 f.write(json.dumps(replay_json))
 
     print(f"Replay generation complete. Model: {model_path}. Replay folder: {replay_folder}.")
 
-    return f"replays_vs_{opp_id}"
+    return f"replays_vs_{opp_id}", list(teams.keys())
