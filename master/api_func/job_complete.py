@@ -55,7 +55,6 @@ def manage_completion(completed_job, results=None, param_template=DEFAULT_PARAM_
             opp_pool = stage_manager.get_benchmarks(stage)
             for _ in range(n_replays):
                 opp_path = random.choice(opp_pool)
-                opp_pool.remove(opp_path)
                 new_job = job_manager.add_queue("replay", {"n_replays":1, "model_path":model_path, "opp_path":opp_path, "player_names":[model_id, os.path.basename(opp_path)], "autoname":False})
                 job_print = {"type": new_job["type"], "args":{key:val for key, val in new_job["args"].items() if key != "eval_results"}, "info":new_job["info"]}
                 print(f"Job Queued: {job_print}")

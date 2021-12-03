@@ -29,7 +29,7 @@ API_PORT = 5001
 N_SELECT = 8  # number of best models to select
 N_BENCHMARKS = 20  # number of benchmark models to select
 ID_RANGE = 100000
-N_REPLAYS = 3
+N_REPLAYS = 5
 DEFAULT_PARAM_TEMPLATE = [
     {
         'model_path':None,
@@ -179,7 +179,7 @@ THIRD_TEMPLATE = [
     },
     {
         'model_path':None,
-        'model_policy':'agent3',
+        'model_policy':'agent4',
         'opp_path':'self',
         'step_count':200000,
         'learning_rate':0.0001,
