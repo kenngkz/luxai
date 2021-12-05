@@ -4,7 +4,10 @@ Tries to maintain a certain ratio of units to citytiles
 Rewards:
     - unit creation/death = (unit_count - self.unit_last) * 0.05
     - city creation/death = (city_tile_count - self.city_tiles_last) * 0.1
-    - collecting fuel = (fuel_collected - self.fuel_collected_last) / 20000
+    - collecting fuel = (fuel_collected - self.fuel_collected_last) * 0.00005
+    - collecting coal (on top of fuel collection) = * 0.0001 per point
+    - collecting uranium (on top of fuel collection) = * 0.0001 per point
+    - research up to 200 points = (research_points - self.research_points_last) * 0.001
     - citytile alive at game end = if game_end: city_tile_count
 '''
 
@@ -24,7 +27,10 @@ class AgentPolicy(BaseAgentPolicy):
         """
         self.units_last = 0
         self.city_tiles_last = 0
-        self.fuel_collected_last = 0
+        self.research_points_last = 0
+        self.fuel_generated_last = 0
+        self.coal_collected_last = 0
+        self.uranium_collected_last = 0
 
     def get_reward(self, game, is_game_finished, is_new_turn, is_game_error):
         """
@@ -40,7 +46,7 @@ class AgentPolicy(BaseAgentPolicy):
             # Only apply rewards at the start of each turn or at game end
             return 0
 
-        # Get some basic stats
+        # Get stats
         unit_count = len(game.state["teamStates"][self.team]["units"])
 
         city_count = 0
@@ -58,26 +64,40 @@ class AgentPolicy(BaseAgentPolicy):
                     city_tile_count += 1
                 else:
                     city_tile_count_opponent += 1
-        
+
+        research_points = game.state["teamStates"][self.team]["researchPoints"]
+        fuel_generated = game.stats["teamStats"][self.team]["fuelGenerated"]
+        coal_collected = game.stats["teamStats"][self.team]["fuelCollected"]["coal"]
+        uranium_collected = game.stats["teamStats"][self.team]["fuelCollected"]["uranium"]
+
+        # Rewards
         rewards = {}
         
-        # Give a reward for unit creation/death. 0.05 reward per unit.
+        # unit creation/death. 0.05 reward per unit.
         rewards["rew/r_units"] = (unit_count - self.units_last) * 0.08
         self.units_last = unit_count
 
-        # Give a reward for city creation/death. 0.1 reward per city.
+        # city creation/death. 0.1 reward per city.
         rewards["rew/r_city_tiles"] = (city_tile_count - self.city_tiles_last) * 0.1
         self.city_tiles_last = city_tile_count
 
-        # Reward based on the ratio of units to citytiles
-        target_unit_ct_ratio = 0.8
-        unit_ct_ratio = 0 if city_tile_count == 0 else unit_count/city_tile_count
-        rewards["rew/unit_ct_ratio"] = - (unit_ct_ratio*10 - target_unit_ct_ratio*10)**2 * 0.01
+        # research
+        rewards["rew/r_research_points"] = (research_points - self.research_points_last) * 0.001 if research_points <= 200 else 0
+        self.research_points_last = research_points
 
-        # Reward collecting fuel
-        fuel_collected = game.stats["teamStats"][self.team]["fuelGenerated"]
-        rewards["rew/r_fuel_collected"] = ( (fuel_collected - self.fuel_collected_last) / 20000 )
-        self.fuel_collected_last = fuel_collected
+        # collecting fuel from coal and uranium if research points is high enough
+        if game.state["teamStates"][self.team]["researched"]["coal"]:
+            rewards["coal_collected"] = ((coal_collected- self.coal_collected_last) * 0.0001)
+            self.coal_collected_last = coal_collected
+            
+        if game.state["teamStates"][self.team]["researched"]["uranium"]:
+            # reward collecting uranium
+            rewards["uranium_collected"] = ((uranium_collected - self.uranium_collected_last) * 0.0001)
+            self.uranium_collected_last = uranium_collected
+
+        # generating fuel
+        rewards["rew/r_fuel_collected"] = ((fuel_generated - self.fuel_generated_last) * 0.00005)
+        self.fuel_collected_last = fuel_generated
         
         # Give a reward of 1.0 per city tile alive at the end of the game
         rewards["rew/r_city_tiles_end"] = 0

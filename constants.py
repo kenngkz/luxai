@@ -170,7 +170,7 @@ THIRD_TEMPLATE = [
     },
     {
         'model_path':None,
-        'model_policy':'agent2',
+        'model_policy':'agent5',
         'opp_path':'self',
         'step_count':200000,
         'learning_rate':0.0001,
