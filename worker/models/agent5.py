@@ -4,9 +4,9 @@ Tries to maintain a certain ratio of units to citytiles
 Rewards:
     - unit creation/death = (unit_count - self.unit_last) * 0.05
     - city creation/death = (city_tile_count - self.city_tiles_last) * 0.1
-    - collecting fuel = (fuel_collected - self.fuel_collected_last) * 0.00005
-    - collecting coal (on top of fuel collection) = * 0.0001 per point
-    - collecting uranium (on top of fuel collection) = * 0.0001 per point
+    - collecting fuel = (fuel_collected - self.fuel_collected_last) * 0.00003
+    - collecting coal (on top of fuel collection) = * 0.00005 per point
+    - collecting uranium (on top of fuel collection) = * 0.00005 per point
     - research up to 200 points = (research_points - self.research_points_last) * 0.001
     - citytile alive at game end = if game_end: city_tile_count
 '''
@@ -67,8 +67,8 @@ class AgentPolicy(BaseAgentPolicy):
 
         research_points = game.state["teamStates"][self.team]["researchPoints"]
         fuel_generated = game.stats["teamStats"][self.team]["fuelGenerated"]
-        coal_collected = game.stats["teamStats"][self.team]["fuelCollected"]["coal"]
-        uranium_collected = game.stats["teamStats"][self.team]["fuelCollected"]["uranium"]
+        coal_collected = game.stats["teamStats"][self.team]["resourcesCollected"]["coal"]
+        uranium_collected = game.stats["teamStats"][self.team]["resourcesCollected"]["uranium"]
 
         # Rewards
         rewards = {}
@@ -87,16 +87,16 @@ class AgentPolicy(BaseAgentPolicy):
 
         # collecting fuel from coal and uranium if research points is high enough
         if game.state["teamStates"][self.team]["researched"]["coal"]:
-            rewards["coal_collected"] = ((coal_collected- self.coal_collected_last) * 0.0001)
+            rewards["coal_collected"] = ((coal_collected- self.coal_collected_last) * 0.00005)
             self.coal_collected_last = coal_collected
             
         if game.state["teamStates"][self.team]["researched"]["uranium"]:
             # reward collecting uranium
-            rewards["uranium_collected"] = ((uranium_collected - self.uranium_collected_last) * 0.0001)
+            rewards["uranium_collected"] = ((uranium_collected - self.uranium_collected_last) * 0.00005)
             self.uranium_collected_last = uranium_collected
 
         # generating fuel
-        rewards["rew/r_fuel_collected"] = ((fuel_generated - self.fuel_generated_last) * 0.00005)
+        rewards["rew/r_fuel_collected"] = ((fuel_generated - self.fuel_generated_last) * 0.00003)
         self.fuel_collected_last = fuel_generated
         
         # Give a reward of 1.0 per city tile alive at the end of the game

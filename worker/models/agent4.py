@@ -4,6 +4,7 @@ Tries to maintain a certain ratio of units to citytiles
 Rewards:
     - unit creation/death = (unit_count - self.unit_last) * 0.05
     - city creation/death = (city_tile_count - self.city_tiles_last) * 0.1
+    - unit to citytiles ratio (negative) = ((ratio - ideal_ratio)**2) * 0.01
     - collecting fuel = (fuel_collected - self.fuel_collected_last) / 20000
     - citytile alive at game end = if game_end: city_tile_count
 '''
